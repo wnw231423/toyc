@@ -27,6 +27,6 @@ int main(int argc, char *argv[]) {
     auto ret = yyparse(ast);
     assert(!ret);
 
-    ast->Dump();
+    ast->Dump(0);
     return 0;
 }

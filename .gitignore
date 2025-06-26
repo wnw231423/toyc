@@ -1,0 +1,12 @@
+*
+！*/
+
+# docker file, makefile, gitignore and readme
+!.gitignore
+!Dockerfile
+!Makefile
+!README.md
+
+# src dir
+!src/
+!src/**

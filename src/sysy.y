@@ -40,7 +40,6 @@ CompUnit
     : FuncDef {
         auto comp_unit = make_unique<CompUnitAST>();
         comp_unit->func_def = unique_ptr<BaseAST>($1);
-        comp_unit->Dump();
         ast = move(comp_unit);
     }
     ;
@@ -51,7 +50,6 @@ FuncDef
         ast->func_type = *unique_ptr<string>($1);
         ast->ident = *unique_ptr<string>($2);
         ast->block = unique_ptr<BaseAST>($5);
-        ast->Dump();
         $$ = ast;
     }
     ;
@@ -60,7 +58,6 @@ Block
     : '{' Stmt '}' {
         auto ast = new BlockAST();
         ast->stmt = unique_ptr<BaseAST>($2);
-        ast->Dump();
         $$ = ast;
     }
     ;
@@ -69,7 +66,6 @@ Stmt
     : RETURN Number ';' {
         auto ast = new ReturnAST();
         ast->ret_value = $2;
-        ast->Dump();
         $$ = ast;
     }
     ;
