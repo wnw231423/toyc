@@ -29,11 +29,12 @@ using namespace std;
 }
 
 %token RETURN
+%token PLUS MINUS NOT
 %token <str_val> TYPE IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef Block Stmt
-%type <int_val> Number
+%type <ast_val> FuncDef Block Stmt Exp UnaryExp PrimaryExp Number
+%type <str_val> UnaryOp
 %%
 
 CompUnit
@@ -63,16 +64,70 @@ Block
     ;
 
 Stmt
-    : RETURN Number ';' {
-        auto ast = new ReturnAST();
-        ast->ret_value = $2;
+    : RETURN Exp ';' {
+        auto ast = new ReturnStmtAST();
+        ast->exp = unique_ptr<BaseAST>($2);
+        $$ = ast;
+    }
+    ;
+
+Exp
+    : UnaryExp {
+        auto ast = new ExpAST();
+        ast->unaryExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+
+UnaryExp
+    : PrimaryExp {
+        auto ast = new UnaryExpAST();
+        ast->type = 1;
+        ast->primaryExp_unaryExp = unique_ptr<BaseAST>($1);
+    }
+    | UnaryOp UnaryExp {
+        auto ast = new UnaryExpAST();
+        ast->type = 2;
+        ast->unary_op = *unique_ptr<string>($1);
+        ast->primaryExp_unaryExp = unique_ptr<BaseAST>($2);
+        $$ = ast;
+    }
+    ;
+
+UnaryOp
+    : PLUS {
+        string *op = new string("+");
+        $$ = op;
+     }
+    | MINUS {
+        string *op = new string("-");
+        $$ = op;
+     }
+    | NOT {
+        string *op = new string("!");
+        $$ = op;
+    }
+    ;
+
+PrimaryExp
+    : '(' Exp ')' {
+        auto ast = new PrimaryExpAST();
+        ast->type = 1;
+        ast->exp_number = unique_ptr<BaseAST>($2);
+        $$ = ast;
+    }
+    | Number {
+        auto ast = new PrimaryExpAST();
+        ast->type = 2;
+        ast->exp_number = unique_ptr<BaseAST>($1);
         $$ = ast;
     }
     ;
 
 Number
     : INT_CONST {
-        $$ = $1;
+        auto ast = new NumberAST();
+        ast->value = $1;
+        $$ = ast;
     }
     ;
 

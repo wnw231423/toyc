@@ -16,7 +16,7 @@ LineComment "//".*
 
 Identifier [a-zA-Z_][a-zA-Z0-9_]*
 
-Decimal [1-9][0-9]*
+Decimal 0|[1-9][0-9]*
 
 %%
 
@@ -29,6 +29,12 @@ Decimal [1-9][0-9]*
     yylval.str_val = new string(yytext);
     return TYPE;
 }
+
+"+" { return PLUS; }
+
+"-" { return MINUS; }
+
+"!" { return NOT; }
 
 {Identifier} {
     yylval.str_val = new string(yytext);
