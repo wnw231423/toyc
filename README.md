@@ -8,7 +8,8 @@
 ### lexing, parsing, ast generation
 [x] Very easy main.
 [x] Unary Expression. (`+`, `-`, `!`)
-[ ] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
+[x] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
+[ ] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
 ...
 
 ## Debugging Chronicles

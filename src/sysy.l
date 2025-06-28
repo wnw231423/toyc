@@ -36,6 +36,12 @@ Decimal 0|[1-9][0-9]*
 
 "!" { return NOT; }
 
+"*" { return TIMES; }
+
+"/" { return DIV; }
+
+"%" { return MOD; }
+
 {Identifier} {
     yylval.str_val = new string(yytext);
     return IDENT;

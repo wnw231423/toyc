@@ -4,6 +4,7 @@
 #include <sstream>
 #include <memory>
 
+/** Dump out a string with level of indents, '\n' in the end. */
 inline void dumpIndent(int level, std::string s) {
     for (int i = 0; i < level; ++i) {
         std::cout << "  ";
@@ -68,14 +69,56 @@ public:
     }
 };
 
-// Exp ::= UnaryExp
+// Exp ::= AddExp
 class ExpAST: public BaseAST {
 public:
-    std::unique_ptr<BaseAST> unaryExp;
+    std::unique_ptr<BaseAST> addExp;
 
     void Dump(int level) const override {
         dumpIndent(level, "ExpAST {");
-        unaryExp->Dump(level + 1);
+        addExp->Dump(level + 1);
+        dumpIndent(level, "}");
+    }
+};
+
+// AddExp ::= MulExp | AddExp ("+" | "-") MulExp
+class AddExpAST: public BaseAST {
+public:
+    int type;
+    std::string add_op;
+    std::unique_ptr<BaseAST> mulExp_addExp;
+    std::unique_ptr<BaseAST> mulExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "AddExpAST {");
+        if (type == 1) {
+            mulExp_addExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "add_op: " + add_op);
+            mulExp_addExp->Dump(level + 1);
+            mulExp->Dump(level + 1);
+        }
+        dumpIndent(level, "}");
+    }
+};
+
+// MulExp ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp
+class MulExpAST: public BaseAST {
+public:
+    int type;
+    std::string mul_op;
+    std::unique_ptr<BaseAST> unaryExp_mulExp;
+    std::unique_ptr<BaseAST> unaryExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "MulExpAST {");
+        if (type == 1) {
+            unaryExp_mulExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "mul_op: " + mul_op);
+            unaryExp->Dump(level + 1);
+            unaryExp_mulExp->Dump(level + 1);
+        }
         dumpIndent(level, "}");
     }
 };

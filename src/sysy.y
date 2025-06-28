@@ -30,10 +30,11 @@ using namespace std;
 
 %token RETURN
 %token PLUS MINUS NOT
+%token TIMES DIV MOD
 %token <str_val> TYPE IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef Block Stmt Exp UnaryExp PrimaryExp Number
+%type <ast_val> FuncDef Block Stmt Exp AddExp MulExp UnaryExp PrimaryExp Number
 %type <str_val> UnaryOp
 %%
 
@@ -72,11 +73,69 @@ Stmt
     ;
 
 Exp
-    : UnaryExp {
+    : AddExp {
         auto ast = new ExpAST();
-        ast->unaryExp = unique_ptr<BaseAST>($1);
+        ast->addExp = unique_ptr<BaseAST>($1);
         $$ = ast;
     }
+
+AddExp
+    : MulExp {
+        auto ast = new AddExpAST();
+        ast->type = 1;
+        ast->mulExp_addExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | AddExp PLUS MulExp {
+        auto ast = new AddExpAST();
+        ast->type = 2;
+        ast->add_op = "+";
+        ast->mulExp_addExp = unique_ptr<BaseAST>($1);
+        ast->mulExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | AddExp MINUS MulExp {
+        auto ast = new AddExpAST();
+        ast->type = 3;
+        ast->add_op = "-";
+        ast->mulExp_addExp = unique_ptr<BaseAST>($1);
+        ast->mulExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
+
+MulExp
+    : UnaryExp {
+        auto ast = new MulExpAST();
+        ast->type = 1;
+        ast->unaryExp_mulExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | MulExp TIMES UnaryExp {
+        auto ast = new MulExpAST();
+        ast->type = 2;
+        ast->mul_op = "*";
+        ast->unaryExp_mulExp = unique_ptr<BaseAST>($1);
+        ast->unaryExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | MulExp DIV UnaryExp {
+        auto ast = new MulExpAST();
+        ast->type = 2;
+        ast->mul_op = "/";
+        ast->unaryExp_mulExp = unique_ptr<BaseAST>($1);
+        ast->unaryExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | MulExp MOD UnaryExp {
+        auto ast = new MulExpAST();
+        ast->type = 2;
+        ast->mul_op = "%";
+        ast->unaryExp_mulExp = unique_ptr<BaseAST>($1);
+        ast->unaryExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
 
 UnaryExp
     : PrimaryExp {
