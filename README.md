@@ -6,10 +6,10 @@
 
 ## Road Map
 ### lexing, parsing, ast generation
-[x] Very easy main.
-[x] Unary Expression. (`+`, `-`, `!`)
-[x] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
-[ ] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
+- [x] Very easy main.
+- [x] Unary Expression. (`+`, `-`, `!`)
+- [x] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
+- [ ] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
 ...
 
 ## Debugging Chronicles
