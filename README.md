@@ -6,11 +6,15 @@
 
 ## Road Map
 ### lexing, parsing, ast generation
+Basic features to meat the requirements of the ToyC language.
 - [x] Very easy main.
-- [x] Unary Expression. (`+`, `-`, `!`)
-- [x] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
-- [x] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
-- [ ] ConstDecl and VarDecl.
+- [x] Unary Expression (`+`, `-`, `!`).
+- [x] Binary Arithmatic Expression (`+`, `-`, `*`, `/`, `%`).
+- [x] Compare and Logic Expression (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`).
+- [ ] Easy VarDecl (i.e. `int a = 1;`).
+...
+Extended features to meat the requirements of the SysY language.
+- [ ] ConstDecl (i.e. `const int a = 1;`) and extended VarDecl (`int a = 1, b = 2;`).
 ...
 
 ## Debugging Chronicles
