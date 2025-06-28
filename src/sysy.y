@@ -31,10 +31,12 @@ using namespace std;
 %token RETURN
 %token PLUS MINUS NOT
 %token TIMES DIV MOD
+%token LT GT LE GE EQ NE AND OR
 %token <str_val> TYPE IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef Block Stmt Exp AddExp MulExp UnaryExp PrimaryExp Number
+%type <ast_val> FuncDef Block Stmt Exp PrimaryExp Number
+%type <ast_val> LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp
 %type <str_val> UnaryOp
 %%
 
@@ -73,9 +75,106 @@ Stmt
     ;
 
 Exp
-    : AddExp {
+    : LOrExp {
         auto ast = new ExpAST();
-        ast->addExp = unique_ptr<BaseAST>($1);
+        ast->lorExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+
+LOrExp
+    : LAndExp {
+        auto ast = new LOrExpAST();
+        ast->type = 1;
+        ast->landExp_lorExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | LOrExp OR LAndExp {
+        auto ast = new LOrExpAST();
+        ast->type = 2;
+        ast->landExp_lorExp = unique_ptr<BaseAST>($1);
+        ast->landExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
+
+LAndExp
+    : EqExp {
+        auto ast = new LAndExpAST();
+        ast->type = 1;
+        ast->eqExp_landExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | LAndExp AND EqExp {
+        auto ast = new LAndExpAST();
+        ast->type = 2;
+        ast->eqExp_landExp = unique_ptr<BaseAST>($1);
+        ast->eqExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
+
+EqExp
+    : RelExp {
+        auto ast = new EqExpAST();
+        ast->type = 1;
+        ast->relExp_eqExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | EqExp EQ RelExp {
+        auto ast = new EqExpAST();
+        ast->type = 2;
+        ast->eq_op = "==";
+        ast->relExp_eqExp = unique_ptr<BaseAST>($1);
+        ast->relExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | EqExp NE RelExp {
+        auto ast = new EqExpAST();
+        ast->type = 2;
+        ast->eq_op = "!=";
+        ast->relExp_eqExp = unique_ptr<BaseAST>($1);
+        ast->relExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
+
+RelExp
+    : AddExp {
+        auto ast = new RelExpAST();
+        ast->type = 1;
+        ast->addExp_relExp = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | RelExp LT AddExp {
+        auto ast = new RelExpAST();
+        ast->type = 2;
+        ast->rel_op = "<";
+        ast->addExp_relExp = unique_ptr<BaseAST>($1);
+        ast->addExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | RelExp GT AddExp {
+        auto ast = new RelExpAST();
+        ast->type = 2;
+        ast->rel_op = ">";
+        ast->addExp_relExp = unique_ptr<BaseAST>($1);
+        ast->addExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | RelExp LE AddExp {
+        auto ast = new RelExpAST();
+        ast->type = 2;
+        ast->rel_op = "<=";
+        ast->addExp_relExp = unique_ptr<BaseAST>($1);
+        ast->addExp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    | RelExp GE AddExp {
+        auto ast = new RelExpAST();
+        ast->type = 2;
+        ast->rel_op = ">=";
+        ast->addExp_relExp = unique_ptr<BaseAST>($1);
+        ast->addExp = unique_ptr<BaseAST>($3);
         $$ = ast;
     }
 

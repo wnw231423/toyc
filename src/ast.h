@@ -69,14 +69,96 @@ public:
     }
 };
 
-// Exp ::= AddExp
+// Exp ::= LOrExp
 class ExpAST: public BaseAST {
 public:
-    std::unique_ptr<BaseAST> addExp;
+    std::unique_ptr<BaseAST> lorExp;
 
     void Dump(int level) const override {
         dumpIndent(level, "ExpAST {");
-        addExp->Dump(level + 1);
+        lorExp->Dump(level + 1);
+        dumpIndent(level, "}");
+    }
+};
+
+// LOrExp ::= LAndExp | LOrExp "||" LAndExp
+class LOrExpAST: public BaseAST {
+public:
+    int type;
+    std::unique_ptr<BaseAST> landExp_lorExp;
+    std::unique_ptr<BaseAST> landExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "LOrExpAST {");
+        if (type == 1) {
+            landExp_lorExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "op: ||");
+            landExp_lorExp->Dump(level + 1);
+            landExp->Dump(level + 1);
+        }
+        dumpIndent(level, "}");
+    }
+};
+
+// LAndExp ::= EqExp | LAndExp "&&" EqExp
+class LAndExpAST: public BaseAST {
+public:
+    int type;
+    std::unique_ptr<BaseAST> eqExp_landExp;
+    std::unique_ptr<BaseAST> eqExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "LAndExpAST {");
+        if (type == 1) {
+            eqExp_landExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "op: &&");
+            eqExp_landExp->Dump(level + 1);
+            eqExp->Dump(level + 1);
+        }
+        dumpIndent(level, "}");
+    }
+};
+
+// EqExp ::= RelExp | EqExp ("==" | "!=") RelExp
+class EqExpAST: public BaseAST {
+public:
+    int type;
+    std::string eq_op;
+    std::unique_ptr<BaseAST> relExp_eqExp;
+    std::unique_ptr<BaseAST> relExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "EqExpAST {");
+        if (type == 1) {
+            relExp_eqExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "eq_op: " + eq_op);
+            relExp_eqExp->Dump(level + 1);
+            relExp->Dump(level + 1);
+        }
+        dumpIndent(level, "}");
+    }
+};
+
+// RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp
+class RelExpAST: public BaseAST {
+public:
+    int type;
+    std::string rel_op;
+    std::unique_ptr<BaseAST> addExp_relExp;
+    std::unique_ptr<BaseAST> addExp;
+
+    void Dump(int level) const override {
+        dumpIndent(level, "RelExpAST {");
+        if (type == 1) {
+            addExp_relExp->Dump(level + 1);
+        } else if (type == 2) {
+            dumpIndent(level + 1, "rel_op: " + rel_op);
+            addExp_relExp->Dump(level + 1);
+            addExp->Dump(level + 1);
+        }
         dumpIndent(level, "}");
     }
 };

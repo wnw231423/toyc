@@ -42,6 +42,22 @@ Decimal 0|[1-9][0-9]*
 
 "%" { return MOD; }
 
+"<" { return LT; }
+
+"<=" { return LE; }
+
+">" { return GT; }
+
+">=" { return GE; }
+
+"==" { return EQ; }
+
+"!=" { return NE; }
+
+"&&" { return AND; }
+
+"||" { return OR; }
+
 {Identifier} {
     yylval.str_val = new string(yytext);
     return IDENT;

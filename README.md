@@ -9,7 +9,8 @@
 - [x] Very easy main.
 - [x] Unary Expression. (`+`, `-`, `!`)
 - [x] Binary Arithmatic Expression. (`+`, `-`, `*`, `/`, `%`)
-- [ ] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
+- [x] Compare and Logic Expression. (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`)
+- [ ] ConstDecl and VarDecl.
 ...
 
 ## Debugging Chronicles
