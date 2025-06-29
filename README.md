@@ -11,10 +11,24 @@ Basic features to meat the requirements of the ToyC language.
 - [x] Unary Expression (`+`, `-`, `!`).
 - [x] Binary Arithmatic Expression (`+`, `-`, `*`, `/`, `%`).
 - [x] Compare and Logic Expression (`<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`).
-- [ ] Easy VarDecl (i.e. `int a = 1;`).
-...
+- [x] Easy VarDecl and VarAssign (i.e. `int a = 1; a = a + 1;`).
+- [ ] Block as statement (i.e. `{ int a = 1; }`).
+- [ ] If-Else statement (i.e. `if (a > 1) { a = 2; } else { a = 3; }`).
+- [ ] While statement (i.e. `while (a < 10) { a = a + 1; }`).
+- [ ] Function declaration and call (i.e. `int f(int a) { return a + 1; } f(1);`).
+...  
+
 Extended features to meat the requirements of the SysY language.
 - [ ] ConstDecl (i.e. `const int a = 1;`) and extended VarDecl (`int a = 1, b = 2;`).
+...
+
+### IR generation
+- [ ] Decide the IR format.
+- [ ] Symbol table.
+...
+
+### optimization
+- [ ] Register allocation.
 ...
 
 ## Debugging Chronicles

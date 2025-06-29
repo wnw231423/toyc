@@ -25,10 +25,7 @@ Decimal 0|[1-9][0-9]*
 
 "return" { return RETURN; }
 
-"int" {
-    yylval.str_val = new string(yytext);
-    return TYPE;
-}
+"int" { return INT; }
 
 "+" { return PLUS; }
 

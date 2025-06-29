@@ -3,7 +3,7 @@
 
 #include "ast.h"
 
-void dumpIndent(int level, std::string s) {
+void dumpIndent(const int level, const std::string& s) {
     for (int i = 0; i < level; ++i) {
         std::cout << "  ";
     }
@@ -28,7 +28,36 @@ void FuncDefAST::Dump(int level) const {
 
 void BlockAST::Dump(int level) const {
     dumpIndent(level, "BlockAST {");
+    for (const auto& stmt : *stmts) {
+        stmt->Dump(level + 1);
+    }
+    dumpIndent(level, "}");
+}
+
+void StmtAST::Dump(int level) const {
+    dumpIndent(level, "StmtAST {");
     stmt -> Dump(level + 1);
+    dumpIndent(level, "}");
+}
+
+void VarDeclStmtAST::Dump(int level) const {
+    dumpIndent(level, "VarDeclStmtAST {");
+    dumpIndent(level + 1, "type: int");
+    var_def -> Dump(level + 1);
+    dumpIndent(level, "}");
+}
+
+void VarDefAST::Dump(int level) const {
+    dumpIndent(level, "VarDefAST {");
+    dumpIndent(level + 1, "ident: " + ident);
+    exp -> Dump(level + 1);
+    dumpIndent(level, "}");
+}
+
+void VarAssignStmtAST::Dump(int level) const {
+    dumpIndent(level, "VarAssignStmtAST {");
+    lval -> Dump(level + 1);
+    exp -> Dump(level + 1);
     dumpIndent(level, "}");
 }
 
@@ -131,7 +160,13 @@ void UnaryExpAST::Dump(int level) const {
 
 void PrimaryExpAST::Dump(int level) const {
     dumpIndent(level, "PrimaryAST {");
-    exp_number -> Dump(level + 1);
+    exp_number_lval -> Dump(level + 1);
+    dumpIndent(level, "}");
+}
+
+void LValAST::Dump(int level) const {
+    dumpIndent(level, "LValAST {");
+    dumpIndent(level + 1, "ident: " + ident);
     dumpIndent(level, "}");
 }
 

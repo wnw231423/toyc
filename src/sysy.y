@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <cstring>
+#include <vector>
 #include "ast.h"
 
 int yylex();
@@ -26,17 +28,21 @@ using namespace std;
     std::string *str_val;
     int int_val;
     BaseAST *ast_val;
+    std::vector<std::unique_ptr<BaseAST>> *vec_val;
 }
 
 %token RETURN
+%token INT
 %token PLUS MINUS NOT
 %token TIMES DIV MOD
 %token LT GT LE GE EQ NE AND OR
-%token <str_val> TYPE IDENT
+%token <str_val> IDENT
 %token <int_val> INT_CONST
 
 %type <ast_val> FuncDef Block Stmt Exp PrimaryExp Number
 %type <ast_val> LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp
+%type <ast_val> VarDecl VarDef VarAssign
+%type <vec_val> StmtList
 %type <str_val> UnaryOp
 %%
 
@@ -49,9 +55,9 @@ CompUnit
     ;
 
 FuncDef
-    : TYPE IDENT '(' ')' Block {
+    : INT IDENT '(' ')' Block {
         auto ast = new FuncDefAST();
-        ast->func_type = *unique_ptr<string>($1);
+        ast->func_type = "int";
         ast->ident = *unique_ptr<string>($2);
         ast->block = unique_ptr<BaseAST>($5);
         $$ = ast;
@@ -59,17 +65,73 @@ FuncDef
     ;
 
 Block
-    : '{' Stmt '}' {
+    : '{' StmtList '}' {
         auto ast = new BlockAST();
-        ast->stmt = unique_ptr<BaseAST>($2);
+        ast->stmts = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
         $$ = ast;
+    }
+    ;
+
+StmtList
+    : {
+        auto vec = new vector<unique_ptr<BaseAST>>();
+        $$ = vec;
+    }
+    | StmtList Stmt {
+        auto vec =$1;
+        vec->push_back(unique_ptr<BaseAST>($2));
+        $$ = vec;
     }
     ;
 
 Stmt
     : RETURN Exp ';' {
-        auto ast = new ReturnStmtAST();
-        ast->exp = unique_ptr<BaseAST>($2);
+        auto ret_ast = new ReturnStmtAST();
+        ret_ast->exp = unique_ptr<BaseAST>($2);
+
+        auto ast = new StmtAST();
+        ast->type = 1;
+        ast->stmt = unique_ptr<BaseAST>(ret_ast);
+        $$ = ast;
+    }
+    | VarDecl ';' {
+        auto ast = new StmtAST();
+        ast->type = 2;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | VarAssign ';' {
+        auto ast = new StmtAST();
+        ast->type = 3;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    ;
+
+VarDecl
+    : INT VarDef {
+        auto ast = new VarDeclStmtAST();
+        ast->var_def = unique_ptr<BaseAST>($2);
+        $$ = ast;
+    }
+
+VarDef
+    : IDENT '=' Exp {
+        auto ast = new VarDefAST();
+        ast->ident = *unique_ptr<string>($1);
+        ast->exp = unique_ptr<BaseAST>($3);
+        $$ = ast;
+    }
+    ;
+
+VarAssign
+    : IDENT '=' Exp {
+        auto lval = new LValAST();
+        lval->ident = *unique_ptr<string>($1);
+
+        auto ast = new VarAssignStmtAST();
+        ast->lval = unique_ptr<BaseAST>(lval);
+        ast->exp = unique_ptr<BaseAST>($3);
         $$ = ast;
     }
     ;
@@ -80,6 +142,7 @@ Exp
         ast->lorExp = unique_ptr<BaseAST>($1);
         $$ = ast;
     }
+    ;
 
 LOrExp
     : LAndExp {
@@ -177,6 +240,7 @@ RelExp
         ast->addExp = unique_ptr<BaseAST>($3);
         $$ = ast;
     }
+    ;
 
 AddExp
     : MulExp {
@@ -270,13 +334,22 @@ PrimaryExp
     : '(' Exp ')' {
         auto ast = new PrimaryExpAST();
         ast->type = 1;
-        ast->exp_number = unique_ptr<BaseAST>($2);
+        ast->exp_number_lval = unique_ptr<BaseAST>($2);
         $$ = ast;
     }
     | Number {
         auto ast = new PrimaryExpAST();
         ast->type = 2;
-        ast->exp_number = unique_ptr<BaseAST>($1);
+        ast->exp_number_lval = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | IDENT {
+        auto lval = new LValAST();
+        lval->ident = *unique_ptr<string>($1);
+
+        auto ast = new PrimaryExpAST();
+        ast->type = 3;
+        ast->exp_number_lval = unique_ptr<BaseAST>(lval);
         $$ = ast;
     }
     ;
@@ -292,5 +365,12 @@ Number
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {
-    cerr << "error: " << s << endl;
+    extern int yylineno;
+    extern char *yytext;
+    int len = strlen(yytext);
+    int i;
+    char buf[512] = {0};
+    for (i=0; i<len; ++i)
+        sprintf(buf, "%s%d ", buf, yytext[i]);
+    fprintf(stderr, "ERROR: %s at symbol '%s' on line %d\n", s, buf, yylineno);
 }

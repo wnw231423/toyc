@@ -1,9 +1,10 @@
 ﻿#ifndef AST_H
 #define AST_H
 #include <memory>
+#include <vector>
 
 /** Dump out a string with level of indents, '\n' in the end. */
-void dumpIndent(int level, std::string s);
+void dumpIndent(int level, const std::string& s);
 
 class BaseAST {
 public:
@@ -28,13 +29,54 @@ public:
     void Dump(int level) const override;
 };
 
+// Block ::= "{" Stmt* "}"
+// In the parser
+// Block ::= "{" StmtList "}"
+// StmtList ::= ε | StmtList Stmt
 class BlockAST: public BaseAST {
 public:
-    std::unique_ptr<BaseAST> stmt;
+    std::unique_ptr<std::vector<std::unique_ptr<BaseAST>>> stmts;
 
     void Dump(int level) const override;
 };
 
+// Stmt ::= ReturnStmt | VarDeclStmt | VarAssignStmt
+class StmtAST: public BaseAST {
+public:
+    int type;
+    std::unique_ptr<BaseAST> stmt;  // Too much variant so use "stmt" as a generic name
+
+    void Dump(int) const override;
+};
+
+// VarDeclStmt ::= "int" VarDef ";"
+class VarDeclStmtAST: public BaseAST {
+public:
+    // std::string type = "int";  // only int, so hardcode it
+    std::unique_ptr<BaseAST> var_def;
+
+    void Dump(int) const override;
+};
+
+// VarDef ::= Ident "=" Exp
+class VarDefAST: public BaseAST {
+public:
+    std::string ident;
+    std::unique_ptr<BaseAST> exp;
+
+    void Dump(int level) const override;
+};
+
+// VarAssignStmt ::= LVal "=" Exp ";"
+class VarAssignStmtAST: public BaseAST {
+public:
+    std::unique_ptr<BaseAST> lval;
+    std::unique_ptr<BaseAST> exp;
+
+    void Dump(int level) const override;
+};
+
+// ReturnStmt ::= "return" Exp ";"
 class ReturnStmtAST: public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
@@ -124,11 +166,18 @@ public:
     void Dump(int level) const override;
 };
 
-// PrimaryExp ::= "(" Exp ")" | Number
+// PrimaryExp ::= "(" Exp ")" | Number | LVal
 class PrimaryExpAST: public BaseAST {
 public:
     int type;
-    std::unique_ptr<BaseAST> exp_number;
+    std::unique_ptr<BaseAST> exp_number_lval;
+
+    void Dump(int level) const override;
+};
+
+class LValAST: public BaseAST {
+public:
+    std::string ident;
 
     void Dump(int level) const override;
 };
