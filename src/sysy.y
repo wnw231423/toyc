@@ -31,17 +31,22 @@ using namespace std;
     std::vector<std::unique_ptr<BaseAST>> *vec_val;
 }
 
+// 定义优先级
+%precedence IFX
+%precedence ELSE
+
 %token RETURN
 %token INT
 %token PLUS MINUS NOT
 %token TIMES DIV MOD
 %token LT GT LE GE EQ NE AND OR
+%token IF ELSE WHILE BREAK CONTINUE
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
 %type <ast_val> FuncDef Block Stmt Exp PrimaryExp Number
 %type <ast_val> LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp
-%type <ast_val> VarDecl VarDef VarAssign
+%type <ast_val> VarDecl VarDef VarAssign IfStmt WhileStmt
 %type <vec_val> StmtList
 %type <str_val> UnaryOp
 %%
@@ -105,6 +110,74 @@ Stmt
         ast->type = 3;
         ast->stmt = unique_ptr<BaseAST>($1);
         $$ = ast;
+    }
+    | Exp ';' {
+        auto ast = new StmtAST();
+        ast->type = 4;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | Block {
+        auto ast = new StmtAST();
+        ast->type = 5;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | ';' {
+        auto ast = new StmtAST();
+        ast->type = 6; // Empty statement
+        ast->stmt = nullptr;
+        $$ = ast;
+    }
+    | IfStmt {
+        auto ast = new StmtAST();
+        ast->type = 7;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | WhileStmt {
+        auto ast = new StmtAST();
+        ast->type = 8;
+        ast->stmt = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    | BREAK ';' {
+        auto stmt_ast = new StmtAST();
+        stmt_ast->type = 9; // Break statement
+        $$ = stmt_ast;
+    }
+    | CONTINUE ';' {
+        auto stmt_ast = new StmtAST();
+        stmt_ast->type = 10; // Continue statement
+        $$ = stmt_ast;
+    }
+    ;
+
+WhileStmt
+    : WHILE '(' Exp ')' Stmt {
+        auto while_ast = new WhileStmtAST();
+        while_ast->exp = unique_ptr<BaseAST>($3);
+        while_ast->stmt = unique_ptr<BaseAST>($5);
+
+        $$ = while_ast;
+    }
+    ;
+
+IfStmt
+    : IF '(' Exp ')' Stmt %prec IFX {
+        auto if_ast = new IfStmtAST();
+        if_ast->exp = unique_ptr<BaseAST>($3);
+        if_ast->stmt_then = unique_ptr<BaseAST>($5);
+
+        $$ = if_ast;
+    }
+    | IF '(' Exp ')' Stmt ELSE Stmt {
+        auto if_ast = new IfStmtAST();
+        if_ast->exp = unique_ptr<BaseAST>($3);
+        if_ast->stmt_then = unique_ptr<BaseAST>($5);
+        if_ast->stmt_else = unique_ptr<BaseAST>($7);
+
+        $$ = if_ast;
     }
     ;
 

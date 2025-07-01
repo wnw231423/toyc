@@ -55,6 +55,16 @@ Decimal 0|[1-9][0-9]*
 
 "||" { return OR; }
 
+"if" { return IF; }
+
+"else" { return ELSE; }
+
+"while" { return WHILE; }
+
+"break" { return BREAK; }
+
+"continue" { return CONTINUE; }
+
 {Identifier} {
     yylval.str_val = new string(yytext);
     return IDENT;

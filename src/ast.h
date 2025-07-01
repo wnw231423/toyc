@@ -40,7 +40,7 @@ public:
     void Dump(int level) const override;
 };
 
-// Stmt ::= ReturnStmt | VarDeclStmt | VarAssignStmt
+// Stmt ::= ReturnStmt | VarDeclStmt | VarAssignStmt | Exp ";" | Block | ";" | IfStmt | WhileStmt | break | continue
 class StmtAST: public BaseAST {
 public:
     int type;
@@ -82,6 +82,25 @@ public:
     std::unique_ptr<BaseAST> exp;
 
     void Dump(int level) const override;
+};
+
+// IfStmt ::= "if" "(" Exp ")" stmt ("else" stmt)?
+class IfStmtAST: public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> stmt_then;
+    std::unique_ptr<BaseAST> stmt_else;  // Optional, can be nullptr
+
+    void Dump(int level) const override;
+};
+
+// WhileStmt ::= "while" "(" Exp ")" stmt
+class WhileStmtAST: public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> stmt;
+
+    void Dump(int) const override;
 };
 
 // Exp ::= LOrExp

@@ -36,7 +36,18 @@ void BlockAST::Dump(int level) const {
 
 void StmtAST::Dump(int level) const {
     dumpIndent(level, "StmtAST {");
-    stmt -> Dump(level + 1);
+    if (type == 6) {
+        dumpIndent(level + 1, "nop");
+    }
+    else if (type == 9) {
+        dumpIndent(level + 1, "break");
+    }
+    else if (type == 10) {
+        dumpIndent(level + 1, "continue");
+    }
+    else {
+        stmt->Dump(level + 1);
+    }
     dumpIndent(level, "}");
 }
 
@@ -64,6 +75,33 @@ void VarAssignStmtAST::Dump(int level) const {
 void ReturnStmtAST::Dump(int level) const {
     dumpIndent(level, "ReturnAST {");
     exp->Dump(level + 1);
+    dumpIndent(level, "}");
+}
+
+void IfStmtAST::Dump(int level) const {
+    dumpIndent(level, "IfStmtAST {");
+    dumpIndent(level + 1, "if condition: {");
+    exp->Dump(level + 2);
+    dumpIndent(level + 1, "}");
+    dumpIndent(level + 1, "then block: {");
+    stmt_then->Dump(level + 2);
+    dumpIndent(level + 1, "}");
+    if (stmt_else) {
+        dumpIndent(level + 1, "else block: {");
+        stmt_else->Dump(level + 2);
+        dumpIndent(level + 1, "}");
+    }
+    dumpIndent(level, "}");
+}
+
+void WhileStmtAST::Dump(int level) const {
+    dumpIndent(level, "WhileStmtAST {");
+    dumpIndent(level + 1, "condition: {");
+    exp -> Dump(level + 2);
+    dumpIndent(level + 1, "}");
+    dumpIndent(level + 1, "body: {");
+    stmt->Dump(level + 2);
+    dumpIndent(level + 1, "}");
     dumpIndent(level, "}");
 }
 
