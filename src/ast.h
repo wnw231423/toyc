@@ -1,4 +1,7 @@
-﻿#ifndef AST_H
+﻿/** This is AST header file.
+ *  Comments are in the form of EBNF, where [] means optional, {} means repetition.
+ */
+#ifndef AST_H
 #define AST_H
 #include <memory>
 #include <vector>
@@ -13,18 +16,31 @@ public:
     virtual void Dump(int) const = 0;
 };
 
+// CompUnit ::= { FuncDef }
 class CompUnitAST : public BaseAST {
 public:
-    std::unique_ptr<BaseAST> func_def;
+    std::unique_ptr<std::vector<std::unique_ptr<BaseAST>>> func_defs;
 
     void Dump(int level) const override;
 };
 
+// FuncDef ::= "int" Ident "(" [FuncFParams] ")" Block
+// FuncFParams ::= FuncFParam {"," FuncFParam}
 class FuncDefAST: public BaseAST {
 public:
     std::string ident;
     std::string func_type;
+    std::unique_ptr<std::vector<std::unique_ptr<BaseAST>>> fparams;
     std::unique_ptr<BaseAST> block;
+
+    void Dump(int level) const override;
+};
+
+// FuncFParam ::= "int" Ident
+class FuncFParamAST: public BaseAST {
+public:
+    std::string type;
+    std::string ident;
 
     void Dump(int level) const override;
 };
@@ -175,12 +191,23 @@ public:
     void Dump(int level) const override;
 };
 
-// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp
+// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp | FuncCall
+// FuncRParams ::= Exp {"," Exp}
 class UnaryExpAST: public BaseAST {
 public:
     int type;
     std::string unary_op;
-    std::unique_ptr<BaseAST> primaryExp_unaryExp;
+    std::unique_ptr<BaseAST> primaryExp_unaryExp_funcCall;
+
+    void Dump(int level) const override;
+};
+
+// FuncCall ::= Ident "(" [FuncRParams] ")"
+// FuncRParams ::= Exp {"," Exp}
+class FuncCallAST: public BaseAST {
+public:
+    std::string ident;
+    std::unique_ptr<std::vector<std::unique_ptr<BaseAST>>> rparams;
 
     void Dump(int level) const override;
 };

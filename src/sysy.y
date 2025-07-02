@@ -36,7 +36,7 @@ using namespace std;
 %precedence ELSE
 
 %token RETURN
-%token INT
+%token INT VOID
 %token PLUS MINUS NOT
 %token TIMES DIV MOD
 %token LT GT LE GE EQ NE AND OR
@@ -44,27 +44,78 @@ using namespace std;
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef Block Stmt Exp PrimaryExp Number
+%type <ast_val> FuncDef FuncFParam FuncCall Block Stmt Exp PrimaryExp Number
 %type <ast_val> LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp
 %type <ast_val> VarDecl VarDef VarAssign IfStmt WhileStmt
-%type <vec_val> StmtList
-%type <str_val> UnaryOp
+%type <vec_val> StmtList FuncDefList FuncFParams ExpList
+%type <str_val> FuncType UnaryOp
 %%
 
 CompUnit
-    : FuncDef {
+    : FuncDefList {
         auto comp_unit = make_unique<CompUnitAST>();
-        comp_unit->func_def = unique_ptr<BaseAST>($1);
+        comp_unit->func_defs = unique_ptr<vector<unique_ptr<BaseAST>>>($1);
         ast = move(comp_unit);
     }
     ;
 
+FuncDefList
+    : FuncDef {
+        auto vec = new vector<unique_ptr<BaseAST>>();
+        vec->push_back(unique_ptr<BaseAST>($1));
+        $$ = vec;
+    }
+    | FuncDefList FuncDef {
+        auto vec = $1;
+        vec->push_back(unique_ptr<BaseAST>($2));
+        $$ = vec;
+    }
+    ;
+
 FuncDef
-    : INT IDENT '(' ')' Block {
+    : FuncType IDENT '(' FuncFParams ')' Block {
         auto ast = new FuncDefAST();
-        ast->func_type = "int";
+        ast->func_type = *unique_ptr<string>($1);
         ast->ident = *unique_ptr<string>($2);
-        ast->block = unique_ptr<BaseAST>($5);
+        ast->fparams = unique_ptr<vector<unique_ptr<BaseAST>>>($4);
+        ast->block = unique_ptr<BaseAST>($6);
+        $$ = ast;
+    }
+    ;
+
+FuncType
+    : INT {
+        string *s = new string("int");
+        $$ = s;
+    }
+    | VOID {
+        string *s = new string("void");
+        $$ = s;
+    }
+    ;
+
+FuncFParams
+    : {
+        auto vec = new vector<unique_ptr<BaseAST>>();
+        $$ = vec;
+    }
+    | FuncFParams ',' FuncFParam {
+        auto vec = $1;
+        vec->push_back(unique_ptr<BaseAST>($3));
+        $$ = vec;
+    }
+    | FuncFParam {
+        auto vec = new vector<unique_ptr<BaseAST>>();
+        vec->push_back(unique_ptr<BaseAST>($1));
+        $$ = vec;
+    }
+    ;
+
+FuncFParam
+    : INT IDENT {
+        auto ast = new FuncFParamAST();
+        ast->type = "int";
+        ast->ident = *unique_ptr<string>($2);
         $$ = ast;
     }
     ;
@@ -377,14 +428,48 @@ UnaryExp
     : PrimaryExp {
         auto ast = new UnaryExpAST();
         ast->type = 1;
-        ast->primaryExp_unaryExp = unique_ptr<BaseAST>($1);
+        ast->primaryExp_unaryExp_funcCall = unique_ptr<BaseAST>($1);
     }
     | UnaryOp UnaryExp {
         auto ast = new UnaryExpAST();
         ast->type = 2;
         ast->unary_op = *unique_ptr<string>($1);
-        ast->primaryExp_unaryExp = unique_ptr<BaseAST>($2);
+        ast->primaryExp_unaryExp_funcCall = unique_ptr<BaseAST>($2);
         $$ = ast;
+    }
+    | FuncCall {
+        auto ast = new UnaryExpAST();
+        ast->type = 3;
+        ast->primaryExp_unaryExp_funcCall = unique_ptr<BaseAST>($1);
+        $$ = ast;
+    }
+    ;
+
+FuncCall
+    : IDENT '(' ExpList ')' {
+        auto func_call = new FuncCallAST();
+        func_call->ident = *unique_ptr<string>($1);
+        func_call->rparams = unique_ptr<vector<unique_ptr<BaseAST>>>($3);
+        $$ = func_call;
+    }
+    | IDENT '(' ')' {
+        auto func_call = new FuncCallAST();
+        func_call->ident = *unique_ptr<string>($1);
+        func_call->rparams = make_unique<vector<unique_ptr<BaseAST>>>();
+        $$ = func_call;
+    }
+    ;
+
+ExpList
+    : ExpList ',' Exp {
+        auto vec = $1;
+        vec->push_back(unique_ptr<BaseAST>($3));
+        $$ = vec;
+    }
+    | Exp {
+        auto vec = new vector<unique_ptr<BaseAST>>();
+        vec->push_back(unique_ptr<BaseAST>($1));
+        $$ = vec;
     }
     ;
 

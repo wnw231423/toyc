@@ -12,7 +12,9 @@ void dumpIndent(const int level, const std::string& s) {
 
 void CompUnitAST::Dump(int level) const {
     dumpIndent(level, "CompUnitAST {");
-    func_def -> Dump(level + 1);
+    for (const auto& func_def : *func_defs) {
+        func_def->Dump(level + 1);
+    }
     dumpIndent(level, "}");
 }
 
@@ -20,9 +22,21 @@ void FuncDefAST::Dump(int level) const {
     dumpIndent(level, "FuncDefAST {");
     dumpIndent(level + 1, "ident: " + ident);
     dumpIndent(level + 1, "func_type: " + func_type);
+    dumpIndent(level + 1, "params: {");
+    for (const auto& param : *fparams) {
+        param->Dump(level + 2);
+    }
+    dumpIndent(level + 1, "}");
     dumpIndent(level + 1, "block: {");
     block -> Dump(level + 2);
     dumpIndent(level + 1, "}");
+    dumpIndent(level, "}");
+}
+
+void FuncFParamAST::Dump(int level) const {
+    dumpIndent(level, "FuncFParamAST {");
+    dumpIndent(level + 1, "type: " + type);
+    dumpIndent(level + 1, "ident: " + ident);
     dumpIndent(level, "}");
 }
 
@@ -186,14 +200,29 @@ void MulExpAST::Dump(int level) const {
 void UnaryExpAST::Dump(int level) const {
     if (type == 1) {
         dumpIndent(level, "UnaryExpAST {");
-        primaryExp_unaryExp->Dump(level + 1);
+        primaryExp_unaryExp_funcCall->Dump(level + 1);
         dumpIndent(level, "}");
     } else if (type == 2) {
         dumpIndent(level, "UnaryExpAST {");
         dumpIndent(level + 1, "unary_op: " + unary_op);
-        primaryExp_unaryExp->Dump(level + 1);
+        primaryExp_unaryExp_funcCall->Dump(level + 1);
+        dumpIndent(level, "}");
+    } else if (type == 3) {
+        dumpIndent(level, "UnaryExpAST {");
+        dumpIndent(level + 1, "func_call: {");
+        primaryExp_unaryExp_funcCall->Dump(level + 2);
+        dumpIndent(level + 1, "}");
         dumpIndent(level, "}");
     }
+}
+
+void FuncCallAST::Dump(int level) const {
+    dumpIndent(level, "FuncCallAST {");
+    dumpIndent(level + 1, "ident: " + ident);
+    for (const auto& param : *rparams) {
+        param->Dump(level + 1);
+    }
+    dumpIndent(level, "}");
 }
 
 void PrimaryExpAST::Dump(int level) const {
