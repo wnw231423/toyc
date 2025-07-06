@@ -1,12 +1,16 @@
 ﻿# Compiler for ToyC
 
 ## Configure dev environment
+
 - run `docker build -t ubuntu-cpp-env .` to build an image.
 - use `docker run -it --rm D:\\your-project:/home/compiler ubuntu-cpp-env bash` to mount your project dir to the container and run.
 
 ## Road Map
+
 ### lexing, parsing, ast generation
+
 Basic features to meat the requirements of the ToyC language.
+
 - [x] Very easy main.
 - [x] Unary Expression (`+`, `-`, `!`).
 - [x] Binary Arithmatic Expression (`+`, `-`, `*`, `/`, `%`).
@@ -17,26 +21,33 @@ Basic features to meat the requirements of the ToyC language.
 - [x] While statement (i.e. `while (a < 10) { a = a + 1; }`).
 - [x] Function declaration and call (i.e. `int f(int a) { return a + 1; } f(1);`).
 
-Extended features to meat the requirements of the SysY language.
-- [ ] ConstDecl (i.e. `const int a = 1;`) and extended VarDecl (`int a = 1, b = 2;`).
-- [ ] Decl as compUnit for global scope variables.
-- [ ] Array.
+### Symbol table
+
+- [x] Symbol table implementation.
 ...
 
 ### IR generation
-- [ ] Decide the IR format.
-- [ ] Symbol table.
+
+- [ ] IR implementation
+- [ ] evaluate AST to IR, using symbol table.
+- [ ] correctness test
 ...
 
 ### optimization
+
 - [ ] Register allocation.
 ...
 
+### RISCV generation
+
 ## Debugging Chronicles
+
 1. Remove 'BOM' of `.l`, `.y` and the input `.tc` file for testing.
 
 ## PS Area
+
 1. registry-mirrors for docker:
+
 ```
 "registry-mirrors": [
     "https://dockerproxy.com",
