@@ -133,7 +133,9 @@ public:
       : IRValue(IRValueTag::FUNC_ARG_REF, std::make_unique<Int32Type>(), n),
         index(i) {}
 
-  std::string toString() const override { return name; }
+  std::string toString() const override {
+    return name + ": " + type->toString();
+  }
 };
 
 // Binary op
@@ -317,5 +319,80 @@ public:
 };
 
 /** program components in IR */
+class BasicBlock {
+public:
+  std::string name;
+  std::vector<std::unique_ptr<IRValue>> insts;
+
+  BasicBlock(const std::string &block_name) : name(block_name) {}
+
+  void add_inst(std::unique_ptr<IRValue> inst) {
+    insts.push_back(std::move(inst));
+  }
+
+  std::string toString() const {
+    std::string res = name + ":\n";
+    for (const auto &inst : insts) {
+      res += inst->toString() + "\n";
+    }
+    return res;
+  }
+};
+
+class Function {
+public:
+  std::string name;
+  std::unique_ptr<FunctionType> f_type;
+  std::vector<std::unique_ptr<IRValue>> params;
+  std::vector<std::unique_ptr<BasicBlock>> bbs; // basic blocks
+
+  Function(const std::string &func_name,
+           std::unique_ptr<FunctionType> func_type)
+      : name(func_name), f_type(std::move(func_type)) {}
+
+  void add_param(std::unique_ptr<FuncArgRefValue> param) {
+    params.push_back(std::move(param));
+  }
+
+  void add_basic_block(std::unique_ptr<BasicBlock> bb) {
+    bbs.push_back(std::move(bb));
+  }
+
+  std::string toString() const {
+    std::string res = "fun @" + name + "(";
+    for (size_t i = 0; i < params.size(); ++i) {
+      if (i > 0)
+        res += ", ";
+      res += params[i]->toString();
+    }
+    res += "): ";
+    res += f_type->return_type->toString();
+    res += "{\n";
+
+    for (const auto &bb : bbs) {
+      res += bb->toString();
+    }
+    res += "}\n";
+
+    return res;
+  }
+};
+
+class Program {
+public:
+  std::vector<std::unique_ptr<Function>> funcs;
+
+  void add_function(std::unique_ptr<Function> func) {
+    funcs.push_back(std::move(func));
+  }
+
+  std::string toString() const {
+    std::string result;
+    for (const auto &func : funcs) {
+      result += func->toString() + "\n";
+    }
+    return result;
+  }
+};
 
 #endif // !IR_H
