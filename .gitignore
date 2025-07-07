@@ -1,8 +1,9 @@
 *
 ！*/
 
-# docker file, makefile, gitignore and readme
+# root level files
 !.gitignore
+!.editorconfig
 !Dockerfile
 !Makefile
 !README.md
