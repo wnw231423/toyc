@@ -20,6 +20,11 @@ public:
   IRType(IRTypeTag type) : t_tag(type) {}
   virtual ~IRType() = default;
 
+  IRType(const IRType &) = delete;
+  IRType &operator=(const IRType &) = delete;
+  IRType(IRType &&) = default;
+  IRType &operator=(IRType &&) = default;
+
   virtual std::string toString() const = 0;
   virtual int equals(const IRType &other) const = 0;
 
@@ -88,6 +93,7 @@ public:
 enum class IRValueTag {
   INTEGER,
   FUNC_ARG_REF,
+  VAR_REF,
   ALLOC,
   LOAD,
   STORE,
@@ -136,6 +142,14 @@ public:
   std::string toString() const override {
     return name + ": " + type->toString();
   }
+};
+
+class VarRefValue : public IRValue {
+public:
+  VarRefValue(const std::string &var_name)
+      : IRValue(IRValueTag::VAR_REF, std::make_unique<Int32Type>(), var_name) {}
+
+  std::string toString() const override { return name; }
 };
 
 // Binary op
