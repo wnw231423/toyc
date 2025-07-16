@@ -3,7 +3,7 @@
 ## Configure dev environment
 
 - run `docker build -t ubuntu-cpp-env .` to build an image.
-- use `docker run -it --rm D:\\your-project:/home/compiler ubuntu-cpp-env bash` to mount your project dir to the container and run.
+- use `docker run -it --rm -v D:\\your-project:/home/compiler ubuntu-cpp-env bash` to mount your project dir to the container and run.
 
 ## Road Map
 
