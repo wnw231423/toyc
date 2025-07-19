@@ -248,16 +248,19 @@ void NumberAST::Dump(int level) const {
   dumpIndent(level, "}");
 }
 
+/*************************/
 /** ast value to IR part */
+/*************************/
+
 std::unique_ptr<Program> CompUnitAST::to_IR() {
-  enter_scope();
+  enter_scope();  // Global scope
 
   auto program = std::make_unique<Program>();
 
   for (auto &func_def_base : *func_defs) {
     auto *func_def = dynamic_cast<FuncDefAST *>(func_def_base.get());
     if (!func_def) {
-      throw std::runtime_error("Expected FuncDefAST in CompUnitAST");
+      throw std::runtime_error("Expecting FuncDefAST in CompUnitAST");
     }
 
     std::string symbol = "@" + func_def->ident;
@@ -281,19 +284,28 @@ std::unique_ptr<Program> CompUnitAST::to_IR() {
 }
 
 std::unique_ptr<Function> FuncDefAST::to_IR() {
-  enter_scope();
+  // value a FuncDefAst to Functon IR
+  // do the following things:
+  //   1. enter a new scope, which is the function scope
+  //   2. name of the function
+  //   3. type of the function, which includes parameters and return type.
+  //      something like "int, int -> int"
+  //   4. parameters of the function
+  //   5. basic blocks.
+
+  enter_scope(); // Function scope
 
   // func name
   std::string name = "@" + ident;
 
-  // func type
+  // func params type
   std::vector<std::unique_ptr<IRType>> params_ty;
   if (fparams->size() != 0) {
     for (auto &fparam_base : *fparams) {
       auto *fparam = dynamic_cast<FuncFParamAST *>(fparam_base.get());
       if (!fparam) {
         throw std::runtime_error(
-            "Expected FuncFParamAST in function parameters");
+            "Expecting FuncFParamAST in function parameters");
       }
 
       if (fparam->type == "int") {
@@ -319,6 +331,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
 
   auto func = std::make_unique<Function>(name, std::move(func_ty));
 
+  // function params
   if (!fparams->empty()) {
     for (size_t i = 0; i < fparams->size(); ++i) {
       auto *fparam = dynamic_cast<FuncFParamAST *>((*fparams)[i].get());
@@ -363,4 +376,19 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
   return func;
 }
 
-void BlockAST::to_IR() {}
+void BlockAST::to_IR() {
+  auto current_block = current_bb;
+  for (const auto &stmt_base : *stmts) {
+    auto *stmt = dynamic_cast<StmtAST *>(stmt_base.get());
+    if (!stmt) {
+      throw std::runtime_error("Expecting StmtAST in BlockAST");
+    }
+
+    switch (stmt->type) {
+      case 1: // ReturnStmt
+        auto *return_stmt =
+            dynamic_cast<ReturnStmtAST *>(stmt->stmt.get());
+
+    }
+  }
+}

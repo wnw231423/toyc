@@ -268,14 +268,14 @@ public:
             std::vector<std::unique_ptr<IRValue>> &arguments,
             std::unique_ptr<IRType> ret_type)
       : IRValue(IRValueTag::CALL, std::move(ret_type), result_name),
-        callee(func_name), args(arguments) {}
+        callee(func_name), args(std::move(arguments)) {}
 
   std::string toString() const override {
     std::string res = "  ";
     if (!name.empty()) {
       res += name + " = ";
     }
-    res += "call @" + callee + " (";
+    res += "call " + callee + " (";
     for (size_t i = 0; i < args.size(); ++i) {
       if (i > 0)
         res += " ,";
@@ -373,7 +373,7 @@ public:
   }
 
   std::string toString() const {
-    std::string res = "fun @" + name + "(";
+    std::string res = "fun " + name + "(";
     for (size_t i = 0; i < params.size(); ++i) {
       if (i > 0)
         res += ", ";

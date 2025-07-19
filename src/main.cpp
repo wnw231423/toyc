@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
     auto ret = yyparse(ast);
     assert(!ret);
 
-    ast->Dump(0);
+    auto comp_unit = dynamic_cast<CompUnitAST *>(ast.get());
+    cout << comp_unit->to_IR()->toString() << endl;
     return 0;
 }
