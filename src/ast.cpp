@@ -7,6 +7,10 @@
 
 #include "IR.h"
 #include "ast.h"
+
+#include <math.h>
+#include <bits/valarray_after.h>
+
 #include "symtable.h"
 
 // keep track of the current function and bbs
@@ -404,6 +408,43 @@ void BlockAST::to_IR() {
         auto *return_stmt =
             dynamic_cast<ReturnStmtAST *>(stmt->stmt.get());
         return_stmt->to_IR();
+        break;
+      case 2:
+        auto *var_decl_stmt =
+            dynamic_cast<VarDeclStmtAST *>(stmt->stmt.get());
+        var_decl_stmt->to_IR();
+        break;
+      case 3:
+        auto *var_assign_stmt =
+            dynamic_cast<VarAssignStmtAST *>(stmt->stmt.get());
+        var_assign_stmt->to_IR();
+        break;
+      case 4:
+        auto *exp_stmt =
+            dynamic_cast<ExpAST *>(stmt->stmt.get());
+        exp_stmt->to_IR();
+        break;
+      case 5:
+        auto *block =
+            dynamic_cast<BlockAST *>(stmt->stmt.get());
+        // TODO: handle block
+        break;
+      case 6:
+        auto *if_stmt =
+            dynamic_cast<IfStmtAST *>(stmt->stmt.get());
+        // TODO: handle if stmt
+        break;
+      case 7:
+        auto *while_stmt =
+            dynamic_cast<WhileStmtAST *>(stmt->stmt.get());
+        // TODO: handle while stmt
+        break;
+      case 8:
+        // TODO: handle break stmt
+        break;
+      case 9:
+        // TODO: handle continue stmt
+        break;
     }
   }
 }
@@ -429,4 +470,43 @@ void ReturnStmtAST::to_IR() {
     auto ret_inst = std::make_unique<ReturnValue>(std::move(ret_v));
     current_bb->add_inst(std::move(ret_inst));
   }
+}
+
+void VarDeclStmtAST::to_IR() {
+  // i.e. "int a = 5;"
+  // %1 = add 0, 5
+  // alloc @a i32
+  // store %1, @a
+  auto *var_def_ast = dynamic_cast<VarDefAST *>(var_def.get());
+  if (!var_def_ast) {
+    throw std::runtime_error("Expecting VarDefAST in VarDeclStmtAST");
+  }
+
+  // VarDef ::= Ident "=" Exp
+  auto exp_temp_name = exp->to_IR();
+  auto alloc_inst = std::make_unique<AllocValue>("@"+var_def_ast->ident);
+  current_bb->add_inst(std::move(alloc_inst));
+
+  auto source = std::make_unique<VarRefValue>(exp_temp_name);
+  auto dest = std::make_unique<VarRefValue>("@" + var_def_ast->ident);
+  auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
+  current_bb->add_inst(std::move(store_inst));
+}
+
+void VarAssignStmtAST::to_IR() {
+  // i.e. "a = 5;"
+  // %1 = add 0, 5
+  // store %1, @a
+  auto *lval_ast = dynamic_cast<LValAST *>(lval.get());
+  if (!lval_ast) {
+    throw std::runtime_error("Expecting LValAST in VarAssignStmtAST");
+  }
+
+  // TODO: check if var exists in the current scope.
+
+  auto exp_temp_name = exp->to_IR();
+  auto source = std::make_unique<VarRefValue>(exp_temp_name);
+  auto dest = std::make_unique<VarRefValue>("@" + lval_ast->ident);
+  auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
+  current_bb->add_inst(std::move(store_inst));
 }

@@ -79,6 +79,7 @@ public:
   std::unique_ptr<BaseAST> var_def;
 
   void Dump(int) const override;
+  void to_IR();
 };
 
 // VarDef ::= Ident "=" Exp
@@ -97,6 +98,7 @@ public:
   std::unique_ptr<BaseAST> exp;
 
   void Dump(int level) const override;
+  void to_IR();
 };
 
 // ReturnStmt ::= "return" Exp? ";"
