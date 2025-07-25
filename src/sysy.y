@@ -141,7 +141,16 @@ StmtList
     ;
 
 Stmt
-    : RETURN Exp ';' {
+    : RETURN ';' {
+        auto ret_ast = new ReturnStmtAST();
+        ret_ast->exp = nullptr; // No expression after return
+
+        auto ast = new StmtAST();
+        ast->type = 1;
+        ast->stmt = unique_ptr<BaseAST>(ret_ast);
+        $$ = ast;
+    }
+    | RETURN Exp ';' {
         auto ret_ast = new ReturnStmtAST();
         ret_ast->exp = unique_ptr<BaseAST>($2);
 

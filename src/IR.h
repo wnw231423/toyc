@@ -275,7 +275,7 @@ public:
     if (!name.empty()) {
       res += name + " = ";
     }
-    res += "call " + callee + " (";
+    res += "call  " + callee + " (";
     for (size_t i = 0; i < args.size(); ++i) {
       if (i > 0)
         res += " ,";

@@ -17,8 +17,20 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
  * The output will be the AST representation of the source code.
  */
 int main(int argc, char *argv[]) {
-    assert(argc == 2);
-    auto input = argv[1];
+    int ast_mode = 0;
+    int ir_mode = 1;
+    char* input;
+
+    assert(argc == 2 || argc == 3);
+    if (argc == 3) {
+        if (string(argv[1]) == "-a") {
+            ast_mode = 1;
+        }
+
+        input = argv[2];
+    } else {
+        input = argv[1];
+    }
 
     yyin = fopen(input, "r");
     assert(yyin);
@@ -28,6 +40,11 @@ int main(int argc, char *argv[]) {
     assert(!ret);
 
     auto comp_unit = dynamic_cast<CompUnitAST *>(ast.get());
-    cout << comp_unit->to_IR()->toString() << endl;
+    if (ast_mode) {
+        comp_unit->Dump(0);
+    } else {
+        cout << comp_unit->to_IR()->toString() << endl;
+    }
+
     return 0;
 }

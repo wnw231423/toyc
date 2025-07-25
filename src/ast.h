@@ -99,12 +99,13 @@ public:
   void Dump(int level) const override;
 };
 
-// ReturnStmt ::= "return" Exp ";"
+// ReturnStmt ::= "return" Exp? ";"
 class ReturnStmtAST : public BaseAST {
 public:
-  std::unique_ptr<BaseAST> exp;
+  std::unique_ptr<BaseAST> exp;  // nullptr when return nothing.
 
   void Dump(int level) const override;
+  void to_IR();
 };
 
 // IfStmt ::= "if" "(" Exp ")" stmt ("else" stmt)?
@@ -137,7 +138,7 @@ public:
 // LOrExp ::= LAndExp | LOrExp "||" LAndExp
 class LOrExpAST : public BaseAST {
 public:
-  int type;
+  int type;  // 1 for LAndExp, 2 for LOrExp "||" LAndExp
   std::unique_ptr<BaseAST> landExp_lorExp;
   std::unique_ptr<BaseAST> landExp;
 

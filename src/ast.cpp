@@ -1,5 +1,6 @@
 ﻿#include <cstddef>
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -8,8 +9,17 @@
 #include "ast.h"
 #include "symtable.h"
 
+// keep track of the current function and bbs
 static Function *current_func;
 static BasicBlock *current_bb;
+
+// the counter and the function for %xxx.
+static int temp_cnt = 0;
+std::string get_temp() {
+  std::ostringstream oss;
+  oss << "%" << temp_cnt++;
+  return oss.str();
+}
 
 void dumpIndent(const int level, const std::string &s) {
   for (int i = 0; i < level; ++i) {
@@ -93,7 +103,12 @@ void VarAssignStmtAST::Dump(int level) const {
 
 void ReturnStmtAST::Dump(int level) const {
   dumpIndent(level, "ReturnAST {");
-  exp->Dump(level + 1);
+  if (exp) {
+    exp->Dump(level + 1);
+  }
+  else {
+    dumpIndent(level + 1, "return nothing");
+  }
   dumpIndent(level, "}");
 }
 
@@ -388,7 +403,30 @@ void BlockAST::to_IR() {
       case 1: // ReturnStmt
         auto *return_stmt =
             dynamic_cast<ReturnStmtAST *>(stmt->stmt.get());
-
+        return_stmt->to_IR();
     }
+  }
+}
+
+void ReturnStmtAST::to_IR() {
+  auto *return_exp = dynamic_cast<LOrExpAST *>(exp.get());
+
+  // ReturnStmt ::= "return" ";"
+  if (!return_exp) {
+    if (current_func->f_type->return_type->equals(*std::make_unique<UnitType>())) {
+      // void function, just return
+      current_bb->add_inst(std::make_unique<ReturnValue>());
+    } else {
+      throw std::runtime_error("Return nothing in non-void function");
+    }
+  }
+
+  // ReturnStmt ::= "return" Exp ";"
+  else {
+    auto ret_temp_name = return_exp->to_IR();
+    // create a return value
+    auto ret_v = std::make_unique<ReturnValue>(std::move(ret_temp_name));
+    auto ret_inst = std::make_unique<ReturnValue>(std::move(ret_v));
+    current_bb->add_inst(std::move(ret_inst));
   }
 }
