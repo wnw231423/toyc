@@ -7,10 +7,6 @@
 
 #include "IR.h"
 #include "ast.h"
-
-#include <math.h>
-#include <bits/valarray_after.h>
-
 #include "symtable.h"
 
 // keep track of the current function and bbs
@@ -24,6 +20,50 @@ std::string get_temp() {
   oss << "%" << temp_cnt++;
   return oss.str();
 }
+
+// the counter and the function for %then_xxx, %else_xxx and %if_end_xxx.
+// should inc if_cnt on your own.
+static int if_cnt = 0;
+std::string get_then_temp() {
+  return "%then_" + std::to_string(if_cnt);
+}
+
+std::string get_else_temp() {
+  return "%else_" + std::to_string(if_cnt);
+}
+
+std::string get_end_temp() {
+  return "%if_end_" + std::to_string(if_cnt);
+}
+
+void inc_if_cnt() {
+  if_cnt++;
+}
+
+// the counter and the function for %while_entry_xxx, %while_body_xxx and %while_end_xxx.
+// should inc while_cnt on your own.
+static int while_cnt = 0;
+std::string get_while_entry_temp() {
+  return "%while_entry_" + std::to_string(while_cnt);
+}
+
+std::string get_while_body_temp() {
+  return "%while_body_" + std::to_string(while_cnt);
+}
+
+std::string get_while_end_temp() {
+  return "%while_end_" + std::to_string(while_cnt);
+}
+
+void inc_while_cnt() {
+  while_cnt++;
+}
+
+// to check if we are in a while loop.
+static int in_while = 0;
+// used for break and continue.
+static int cur_while = 0;
+
 
 void dumpIndent(const int level, const std::string &s) {
   for (int i = 0; i < level; ++i) {
@@ -367,6 +407,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
   ////
   auto entry_block = std::make_unique<BasicBlock>("%entry");
   current_bb = entry_block.get();
+  current_func->add_basic_block(std::move(entry_block));
   // alloc for parameters
   if (!fparams->empty()) {
     for (auto &fparam_base : *fparams) {
@@ -396,7 +437,6 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
 }
 
 void BlockAST::to_IR() {
-  auto current_block = current_bb;
   for (const auto &stmt_base : *stmts) {
     auto *stmt = dynamic_cast<StmtAST *>(stmt_base.get());
     if (!stmt) {
@@ -404,47 +444,67 @@ void BlockAST::to_IR() {
     }
 
     switch (stmt->type) {
-      case 1: // ReturnStmt
+      case 1: {
+        // ReturnStmt
         auto *return_stmt =
             dynamic_cast<ReturnStmtAST *>(stmt->stmt.get());
         return_stmt->to_IR();
         break;
-      case 2:
+      }
+      case 2: {
         auto *var_decl_stmt =
             dynamic_cast<VarDeclStmtAST *>(stmt->stmt.get());
         var_decl_stmt->to_IR();
         break;
-      case 3:
+      }
+      case 3: {
         auto *var_assign_stmt =
             dynamic_cast<VarAssignStmtAST *>(stmt->stmt.get());
         var_assign_stmt->to_IR();
         break;
-      case 4:
+      }
+      case 4: {
         auto *exp_stmt =
             dynamic_cast<ExpAST *>(stmt->stmt.get());
         exp_stmt->to_IR();
         break;
-      case 5:
+      }
+      case 5: {
         auto *block =
             dynamic_cast<BlockAST *>(stmt->stmt.get());
-        // TODO: handle block
+        enter_scope();
+        block->to_IR();
+        exit_scope();
         break;
+      }
       case 6:
+        break;
+      case 7: {
         auto *if_stmt =
             dynamic_cast<IfStmtAST *>(stmt->stmt.get());
-        // TODO: handle if stmt
+        if_stmt->to_IR();
         break;
-      case 7:
+      }
+      case 8: {
         auto *while_stmt =
             dynamic_cast<WhileStmtAST *>(stmt->stmt.get());
-        // TODO: handle while stmt
+        while_stmt->to_IR();
         break;
-      case 8:
-        // TODO: handle break stmt
+      }
+      case 9: {
+        // jump %while_end_xxx
+        std::string while_end_name = "%while_end_" + std::to_string(cur_while);
+        auto jump_inst_break = std::make_unique<JumpValue>(while_end_name);
+        current_bb->add_inst(std::move(jump_inst_break));
         break;
-      case 9:
-        // TODO: handle continue stmt
+      }
+      case 10: {
+        // jump %while_entry_xxx
+        std::string while_entry_name = "%while_entry_" + std::to_string(cur_while);
+        auto jump_inst_continue = std::make_unique<JumpValue>(while_entry_name);
+        current_bb->add_inst(std::move(jump_inst_continue));
         break;
+      }
     }
   }
 }
@@ -466,7 +526,7 @@ void ReturnStmtAST::to_IR() {
   else {
     auto ret_temp_name = return_exp->to_IR();
     // create a return value
-    auto ret_v = std::make_unique<ReturnValue>(std::move(ret_temp_name));
+    auto ret_v = std::make_unique<VarRefValue>(ret_temp_name);
     auto ret_inst = std::make_unique<ReturnValue>(std::move(ret_v));
     current_bb->add_inst(std::move(ret_inst));
   }
@@ -483,7 +543,8 @@ void VarDeclStmtAST::to_IR() {
   }
 
   // VarDef ::= Ident "=" Exp
-  auto exp_temp_name = exp->to_IR();
+  auto *exp_ast = dynamic_cast<ExpAST *>(var_def_ast->exp.get());
+  auto exp_temp_name = exp_ast->to_IR();
   auto alloc_inst = std::make_unique<AllocValue>("@"+var_def_ast->ident);
   current_bb->add_inst(std::move(alloc_inst));
 
@@ -491,6 +552,12 @@ void VarDeclStmtAST::to_IR() {
   auto dest = std::make_unique<VarRefValue>("@" + var_def_ast->ident);
   auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
   current_bb->add_inst(std::move(store_inst));
+
+  // insert the variable into the symbol table
+  if (exist_sym("@" + var_def_ast->ident)) {
+    throw std::runtime_error("Variable " + var_def_ast->ident + " already exists.");
+  }
+  insert_sym("@" + var_def_ast->ident, sym_type::SYM_TYPE_VAR, 0);
 }
 
 void VarAssignStmtAST::to_IR() {
@@ -502,11 +569,411 @@ void VarAssignStmtAST::to_IR() {
     throw std::runtime_error("Expecting LValAST in VarAssignStmtAST");
   }
 
-  // TODO: check if var exists in the current scope.
+  // check if var exists in the current scope.
+  if (!exist_sym(lval_ast->ident)) {
+    throw std::runtime_error("Variable " + lval_ast->ident + " has no declaration.");
+  }
 
-  auto exp_temp_name = exp->to_IR();
+  auto *exp_ast = dynamic_cast<ExpAST *>(exp.get());
+  auto exp_temp_name = exp_ast->to_IR();
   auto source = std::make_unique<VarRefValue>(exp_temp_name);
   auto dest = std::make_unique<VarRefValue>("@" + lval_ast->ident);
   auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
   current_bb->add_inst(std::move(store_inst));
+}
+
+void handle_then_block(std::unique_ptr<BaseAST> stmt_then, const std::string &then_block_name, const std::string &end_block_name) {
+  auto then_block = std::make_unique<BasicBlock>(then_block_name);
+  current_func->add_basic_block(std::move(then_block));
+  current_bb = current_func->bbs.back().get();
+
+  // enter a new scope for the then block
+  enter_scope();
+  auto *block_ast = dynamic_cast<BlockAST *>(stmt_then.get());
+  if (!block_ast) {
+    throw std::runtime_error("Expecting BlockAST in IfStmtAST");
+  }
+  block_ast->to_IR();
+
+  // add a jump to the end block
+  auto jump_inst = std::make_unique<JumpValue>(end_block_name);
+  current_bb->add_inst(std::move(jump_inst));
+
+  exit_scope(); // exit the then block scope
+}
+
+void handle_else_block(std::unique_ptr<BaseAST> stmt_else, const std::string &else_block_name, const std::string &end_block_name) {
+  auto else_block = std::make_unique<BasicBlock>(else_block_name);
+  current_func->add_basic_block(std::move(else_block));
+  current_bb = current_func->bbs.back().get();
+
+  // enter a new scope for the else block
+  enter_scope();
+  auto *block_ast = dynamic_cast<BlockAST *>(stmt_else.get());
+  if (!block_ast) {
+    throw std::runtime_error("Expecting BlockAST in IfStmtAST");
+  }
+  block_ast->to_IR();
+
+  // add a jump to the end block
+  auto jump_inst = std::make_unique<JumpValue>(end_block_name);
+  current_bb->add_inst(std::move(jump_inst));
+
+  exit_scope(); // exit the else block scope
+}
+
+void IfStmtAST::to_IR() {
+  auto *exp_ast = dynamic_cast<ExpAST *>(exp.get());
+  auto exp_temp_name = exp_ast->to_IR();
+  auto exp_value = std::make_unique<VarRefValue>(exp_temp_name);
+  auto then_block_name = get_then_temp();
+  auto else_block_name = get_else_temp();
+  auto end_block_name = get_end_temp();
+  inc_if_cnt();
+
+  if (stmt_else) {
+    // br %1, %then_1, %else_1
+    auto branch_inst = std::make_unique<BranchValue>(
+        std::move(exp_value), then_block_name, else_block_name);
+
+    // handle then block
+    handle_then_block(std::move(stmt_then), then_block_name, end_block_name);
+    // handle else block
+    handle_else_block(std::move(stmt_else), else_block_name, end_block_name);
+  } else {
+    // br %1, %then_1, %end_1
+    auto branch_inst = std::make_unique<BranchValue>(
+        std::move(exp_value), then_block_name, end_block_name);
+    // handle then block
+    handle_then_block(std::move(stmt_then), then_block_name, end_block_name);
+  }
+
+  // change the current basic block to the end block
+  auto end_block = std::make_unique<BasicBlock>(end_block_name);
+  current_func->add_basic_block(std::move(end_block));
+  current_bb = current_func->bbs.back().get();
+}
+
+void WhileStmtAST::to_IR() {
+  auto while_entry_name = get_while_entry_temp();
+  auto while_body_name = get_while_body_temp();
+  auto end_block_name = get_while_end_temp();
+  cur_while = while_cnt;
+  inc_while_cnt();
+
+  // jump %while_entry_1
+  auto jump_inst = std::make_unique<JumpValue>(while_entry_name);
+  current_bb->add_inst(std::move(jump_inst));
+
+  // create the while entry block
+  auto while_entry_block = std::make_unique<BasicBlock>(while_entry_name);
+  current_func->add_basic_block(std::move(while_entry_block));
+  current_bb = current_func->bbs.back().get();
+  auto *exp_ast = dynamic_cast<ExpAST *>(exp.get());
+  std::string exp_temp_name = exp_ast->to_IR();
+  auto exp_value = std::make_unique<VarRefValue>(exp_temp_name);
+  // br %1, %while_body_1, %while_end_1
+  auto branch_inst = std::make_unique<BranchValue>(
+      std::move(exp_value), while_body_name, end_block_name);
+  current_bb->add_inst(std::move(branch_inst));
+
+  // create the while body block
+  in_while = 1;
+  auto while_body_block = std::make_unique<BasicBlock>(while_body_name);
+  current_func->add_basic_block(std::move(while_body_block));
+  current_bb = current_func->bbs.back().get();
+  // enter a new scope for the while body
+  enter_scope();
+  auto *block_ast = dynamic_cast<BlockAST *>(stmt.get());
+  if (!block_ast) {
+    throw std::runtime_error("Expecting BlockAST in WhileStmtAST");
+  }
+  block_ast->to_IR();
+  // add a jump to the while entry block
+  auto jump_inst_body = std::make_unique<JumpValue>(while_entry_name);
+  current_bb->add_inst(std::move(jump_inst_body));
+  exit_scope(); // exit the while body scope
+  in_while = 0;
+
+  // create the end block
+  auto end_block = std::make_unique<BasicBlock>(end_block_name);
+  current_func->add_basic_block(std::move(end_block));
+  current_bb = current_func->bbs.back().get();
+}
+
+std::string ExpAST::to_IR() {
+  // Exp ::= LOrExp
+  auto *lor_exp = dynamic_cast<LOrExpAST *>(lorExp.get());
+  if (!lor_exp) {
+    throw std::runtime_error("Expecting LOrExpAST in ExpAST");
+  }
+  return lor_exp->to_IR();
+}
+
+std::string LOrExpAST::to_IR() {
+  if (type == 1) {
+    // LAndExp
+    auto *res =
+        dynamic_cast<LAndExpAST *>(landExp_lorExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // LOrExp "||" LAndExp
+    auto *l = dynamic_cast<LOrExpAST *>(landExp_lorExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<LAndExpAST *>(landExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+
+    auto temp_name = get_temp();
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, BinaryOp::OR, std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  }
+}
+
+std::string LAndExpAST::to_IR() {
+  if (type == 1) {
+    // EqExp
+    auto *res = dynamic_cast<EqExpAST *>(eqExp_landExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // LAndExp "&&" EqExp
+    auto *l = dynamic_cast<LAndExpAST *>(eqExp_landExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<EqExpAST *>(eqExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+    auto temp_name = get_temp();
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, BinaryOp::AND, std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  }
+}
+
+std::string EqExpAST::to_IR() {
+  if (type == 1) {
+    // RelExp
+    auto *res = dynamic_cast<RelExpAST *>(relExp_eqExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // EqExp "==" RelExp
+    auto *l = dynamic_cast<EqExpAST *>(relExp_eqExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<RelExpAST *>(relExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+    auto temp_name = get_temp();
+    BinaryOp op = (eq_op == "==") ? BinaryOp::EQ : BinaryOp::NE;
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, op, std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  }
+}
+
+std::string RelExpAST::to_IR() {
+  if (type == 1) {
+    // AddExp
+    auto *res = dynamic_cast<AddExpAST *>(addExp_relExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // RelExp "<" AddExp
+    auto *l = dynamic_cast<RelExpAST *>(addExp_relExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<AddExpAST *>(addExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+    auto temp_name = get_temp();
+    BinaryOp op;
+    if (rel_op == "<") {
+      op = BinaryOp::LT;
+    } else if (rel_op == ">") {
+      op = BinaryOp::GT;
+    } else if (rel_op == "<=") {
+      op = BinaryOp::LE;
+    } else if (rel_op == ">=") {
+      op = BinaryOp::GE;
+    } else {
+      throw std::runtime_error("Unsupported relational operator: " + rel_op);
+    }
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, op, std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  }
+}
+
+std::string AddExpAST::to_IR() {
+  if (type == 1) {
+    // MulExp
+    auto *res = dynamic_cast<MulExpAST *>(mulExp_addExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // AddExp ("+" | "-") MulExp
+    auto *l = dynamic_cast<AddExpAST *>(mulExp_addExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<MulExpAST *>(mulExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+    auto temp_name = get_temp();
+    BinaryOp op = (add_op == "+") ? BinaryOp::ADD : BinaryOp::SUB;
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name,op,  std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  } else {
+    throw std::runtime_error("Unknown AddExp type.");
+  }
+}
+
+std::string MulExpAST::to_IR() {
+  if (type == 1) {
+    // UnaryExp
+    auto *res = dynamic_cast<UnaryExpAST *>(unaryExp_mulExp.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // MulExp "*" UnaryExp
+    auto *l = dynamic_cast<MulExpAST *>(unaryExp_mulExp.get());
+    auto left_temp_name = l->to_IR();
+    auto lhs = std::make_unique<VarRefValue>(left_temp_name);
+
+    auto *r = dynamic_cast<UnaryExpAST *>(unaryExp.get());
+    auto right_temp_name = r->to_IR();
+    auto rhs = std::make_unique<VarRefValue>(right_temp_name);
+
+    auto temp_name = get_temp();
+    BinaryOp op;
+    if (mul_op == "*") {
+      op = BinaryOp::MUL;
+    } else if (mul_op == "/") {
+      op = BinaryOp::DIV;
+    } else if (mul_op == "%") {
+      op = BinaryOp::MOD;
+    } else {
+      throw std::runtime_error("Unsupported multiplication operator: " + mul_op);
+    }
+    auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, op, std::move(lhs), std::move(rhs));
+    current_bb->add_inst(std::move(binary_inst));
+    return temp_name;
+  } else {
+    throw std::runtime_error("Unknown MulExp type.");
+  }
+}
+
+std::string UnaryExpAST::to_IR() {
+  if (type == 1) {
+    // PrimaryExp
+    auto *res = dynamic_cast<PrimaryExpAST *>(primaryExp_unaryExp_funcCall.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // UnaryOp PrimaryExp
+    auto *r = dynamic_cast<PrimaryExpAST *>(primaryExp_unaryExp_funcCall.get());
+    auto rhs = std::make_unique<VarRefValue>(r->to_IR());
+    auto temp_name = get_temp();
+    if (unary_op == "-") {
+      // negate the value
+      auto lhs = std::make_unique<IntergerValue>(0);
+      auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, BinaryOp::SUB, std::move(lhs), std::move(rhs));
+    } else if (unary_op == "!") {
+      // logical not
+      auto lhs = std::make_unique<IntergerValue>(0);
+      auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name,BinaryOp::EQ, std::move(lhs), std::move(rhs));
+    } else {
+      throw std::runtime_error("Unsupported unary operator: " + unary_op);
+    }
+    return temp_name;
+  } else if (type == 3) {
+    // FuncCall
+    auto *res = dynamic_cast<FuncCallAST *>(primaryExp_unaryExp_funcCall.get());
+    return res->to_IR();
+  } else {
+    throw std::runtime_error("unknown unary exp ast.");
+  }
+}
+
+std::string FuncCallAST::to_IR() {
+  // FuncCall ::= Ident "(" [RParams] ")"
+  // RParams ::= Exp {"," Exp}
+  std::string func_name = "@" + ident;
+  if (!exist_sym(func_name)) {
+    throw std::runtime_error("Function " + ident + " has no declaration.");
+  }
+
+  auto func_type = query_sym(func_name).second->type;
+  if ((func_type != sym_type::SYM_TYPE_INTF) && (func_type != sym_type::SYM_TYPE_VOIDF)) {
+    throw std::runtime_error(ident + " is not a function.");
+  }
+
+  std::vector<std::unique_ptr<IRValue>> args;
+  if (rparams) {
+    for (const auto &param_base : *rparams) {
+      auto *param = dynamic_cast<ExpAST *>(param_base.get());
+      if (!param) {
+        throw std::runtime_error("Expecting ExpAST in FuncCallAST RParams");
+      }
+      auto param_temp_name = param->to_IR();
+      args.push_back(std::make_unique<VarRefValue>(param_temp_name));
+    }
+  }
+
+  auto res_name = get_temp();
+  std::unique_ptr<IRType> ret_type;
+  if (func_type == sym_type::SYM_TYPE_INTF) {
+    ret_type = std::make_unique<Int32Type>();
+  } else if (func_type == sym_type::SYM_TYPE_VOIDF) {
+    ret_type = std::make_unique<UnitType>();
+  }
+
+  auto func_call_inst = std::make_unique<CallValue>(
+      res_name, func_name, args, std::move(ret_type));
+  current_bb->add_inst(std::move(func_call_inst));
+
+  return res_name;
+}
+
+std::string PrimaryExpAST::to_IR() {
+  if (type == 1) {
+    // Exp
+    auto *res = dynamic_cast<ExpAST *>(exp_number_lval.get());
+    return res->to_IR();
+  } else if (type == 2) {
+    // Number
+    auto *number_ast = dynamic_cast<NumberAST *>(exp_number_lval.get());
+    if (!number_ast) {
+      throw std::runtime_error("Expecting NumberAST in PrimaryExpAST");
+    }
+    auto temp_name = get_temp();
+    auto number_value = std::make_unique<IntergerValue>(number_ast->value);
+    auto number_inst = std::make_unique<BinaryValue>(
+        temp_name, BinaryOp::ADD, std::make_unique<IntergerValue>(0), std::move(number_value));
+    current_bb->add_inst(std::move(number_inst));
+    return temp_name;
+  } else if (type == 3) {
+    // LVal
+    auto *res = dynamic_cast<LValAST *>(exp_number_lval.get());
+    return res->to_IR();
+  }
+}
+
+std::string LValAST::to_IR() {
+  // LVal ::= Ident
+  if (!exist_sym(ident)) {
+    throw std::runtime_error("Variable " + ident + " has no declaration.");
+  }
+  return "@" + ident; // return the variable name
 }

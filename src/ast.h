@@ -118,6 +118,7 @@ public:
   std::unique_ptr<BaseAST> stmt_else; // Optional, can be nullptr
 
   void Dump(int level) const override;
+  void to_IR();
 };
 
 // WhileStmt ::= "while" "(" Exp ")" stmt
@@ -127,6 +128,7 @@ public:
   std::unique_ptr<BaseAST> stmt;
 
   void Dump(int) const override;
+  void to_IR();
 };
 
 // Exp ::= LOrExp
@@ -135,6 +137,7 @@ public:
   std::unique_ptr<BaseAST> lorExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // LOrExp ::= LAndExp | LOrExp "||" LAndExp
@@ -145,6 +148,7 @@ public:
   std::unique_ptr<BaseAST> landExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // LAndExp ::= EqExp | LAndExp "&&" EqExp
@@ -155,6 +159,7 @@ public:
   std::unique_ptr<BaseAST> eqExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // EqExp ::= RelExp | EqExp ("==" | "!=") RelExp
@@ -166,6 +171,7 @@ public:
   std::unique_ptr<BaseAST> relExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp
@@ -177,6 +183,7 @@ public:
   std::unique_ptr<BaseAST> addExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // AddExp ::= MulExp | AddExp ("+" | "-") MulExp
@@ -188,6 +195,7 @@ public:
   std::unique_ptr<BaseAST> mulExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // MulExp ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp
@@ -199,6 +207,7 @@ public:
   std::unique_ptr<BaseAST> unaryExp;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // UnaryExp ::= PrimaryExp | UnaryOp UnaryExp | FuncCall
@@ -210,6 +219,7 @@ public:
   std::unique_ptr<BaseAST> primaryExp_unaryExp_funcCall;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // FuncCall ::= Ident "(" [FuncRParams] ")"
@@ -220,6 +230,7 @@ public:
   std::unique_ptr<std::vector<std::unique_ptr<BaseAST>>> rparams;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 // PrimaryExp ::= "(" Exp ")" | Number | LVal
@@ -229,6 +240,7 @@ public:
   std::unique_ptr<BaseAST> exp_number_lval;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 class LValAST : public BaseAST {
@@ -236,6 +248,7 @@ public:
   std::string ident;
 
   void Dump(int level) const override;
+  std::string to_IR();
 };
 
 class NumberAST : public BaseAST {
@@ -243,6 +256,7 @@ public:
   int value;
 
   void Dump(int level) const override;
+  std::string to_IR() {return "should not reach";};
 };
 
 #endif // AST_H

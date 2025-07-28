@@ -317,7 +317,7 @@ public:
 
   std::string toString() const override {
     return "  br " + cond->toString() + ", " + true_block + ", " +
-           "false_block";
+           false_block;
   }
 };
 
