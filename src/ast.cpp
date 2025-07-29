@@ -1,4 +1,5 @@
-﻿#include <cstddef>
+﻿#define DEBUG
+
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -416,7 +417,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
         continue;
 
       if (fparam->type == "int") {
-        std::string param_local_name = "%" + get_scope_number() + fparam->ident;
+        std::string param_local_name = "%" + fparam->ident;
         auto alloc_inst = std::make_unique<AllocValue>(param_local_name);
         current_bb->add_inst(std::move(alloc_inst));
 
@@ -443,74 +444,78 @@ void BlockAST::to_IR() {
       throw std::runtime_error("Expecting StmtAST in BlockAST");
     }
 
-    switch (stmt->type) {
-      case 1: {
-        // ReturnStmt
-        auto *return_stmt =
-            dynamic_cast<ReturnStmtAST *>(stmt->stmt.get());
-        return_stmt->to_IR();
-        break;
-      }
-      case 2: {
-        auto *var_decl_stmt =
-            dynamic_cast<VarDeclStmtAST *>(stmt->stmt.get());
-        var_decl_stmt->to_IR();
-        break;
-      }
-      case 3: {
-        auto *var_assign_stmt =
-            dynamic_cast<VarAssignStmtAST *>(stmt->stmt.get());
-        var_assign_stmt->to_IR();
-        break;
-      }
-      case 4: {
-        auto *exp_stmt =
-            dynamic_cast<ExpAST *>(stmt->stmt.get());
-        exp_stmt->to_IR();
-        break;
-      }
-      case 5: {
-        auto *block =
-            dynamic_cast<BlockAST *>(stmt->stmt.get());
-        enter_scope();
-        block->to_IR();
-        exit_scope();
-        break;
-      }
-      case 6:
-        break;
-      case 7: {
-        auto *if_stmt =
-            dynamic_cast<IfStmtAST *>(stmt->stmt.get());
-        if_stmt->to_IR();
-        break;
-      }
-      case 8: {
-        auto *while_stmt =
-            dynamic_cast<WhileStmtAST *>(stmt->stmt.get());
-        while_stmt->to_IR();
-        break;
-      }
-      case 9: {
-        // jump %while_end_xxx
-        std::string while_end_name = "%while_end_" + std::to_string(cur_while);
-        auto jump_inst_break = std::make_unique<JumpValue>(while_end_name);
-        current_bb->add_inst(std::move(jump_inst_break));
-        break;
-      }
-      case 10: {
-        // jump %while_entry_xxx
-        std::string while_entry_name = "%while_entry_" + std::to_string(cur_while);
-        auto jump_inst_continue = std::make_unique<JumpValue>(while_entry_name);
-        current_bb->add_inst(std::move(jump_inst_continue));
-        break;
-      }
+    stmt->to_IR();
+  }
+}
+
+void StmtAST::to_IR() {
+  switch (type) {
+    case 1: {
+      // ReturnStmt
+      auto *return_stmt =
+          dynamic_cast<ReturnStmtAST *>(stmt.get());
+      return_stmt->to_IR();
+      break;
+    }
+    case 2: {
+      auto *var_decl_stmt =
+          dynamic_cast<VarDeclStmtAST *>(stmt.get());
+      var_decl_stmt->to_IR();
+      break;
+    }
+    case 3: {
+      auto *var_assign_stmt =
+          dynamic_cast<VarAssignStmtAST *>(stmt.get());
+      var_assign_stmt->to_IR();
+      break;
+    }
+    case 4: {
+      auto *exp_stmt =
+          dynamic_cast<ExpAST *>(stmt.get());
+      exp_stmt->to_IR();
+      break;
+    }
+    case 5: {
+      auto *block =
+          dynamic_cast<BlockAST *>(stmt.get());
+      enter_scope();
+      block->to_IR();
+      exit_scope();
+      break;
+    }
+    case 6:
+      break;
+    case 7: {
+      auto *if_stmt =
+          dynamic_cast<IfStmtAST *>(stmt.get());
+      if_stmt->to_IR();
+      break;
+    }
+    case 8: {
+      auto *while_stmt =
+          dynamic_cast<WhileStmtAST *>(stmt.get());
+      while_stmt->to_IR();
+      break;
+    }
+    case 9: {
+      // jump %while_end_xxx
+      std::string while_end_name = "%while_end_" + std::to_string(cur_while);
+      auto jump_inst_break = std::make_unique<JumpValue>(while_end_name);
+      current_bb->add_inst(std::move(jump_inst_break));
+      break;
+    }
+    case 10: {
+      // jump %while_entry_xxx
+      std::string while_entry_name = "%while_entry_" + std::to_string(cur_while);
+      auto jump_inst_continue = std::make_unique<JumpValue>(while_entry_name);
+      current_bb->add_inst(std::move(jump_inst_continue));
+      break;
     }
   }
 }
 
 void ReturnStmtAST::to_IR() {
-  auto *return_exp = dynamic_cast<LOrExpAST *>(exp.get());
+  auto *return_exp = dynamic_cast<ExpAST *>(exp.get());
 
   // ReturnStmt ::= "return" ";"
   if (!return_exp) {
@@ -570,7 +575,7 @@ void VarAssignStmtAST::to_IR() {
   }
 
   // check if var exists in the current scope.
-  if (!exist_sym(lval_ast->ident)) {
+  if (!exist_sym("@" + lval_ast->ident)) {
     throw std::runtime_error("Variable " + lval_ast->ident + " has no declaration.");
   }
 
@@ -583,15 +588,18 @@ void VarAssignStmtAST::to_IR() {
 }
 
 void handle_then_block(std::unique_ptr<BaseAST> stmt_then, const std::string &then_block_name, const std::string &end_block_name) {
+#ifdef DEBUG
+  std::cout << "enter then block." << std::endl;
+#endif
   auto then_block = std::make_unique<BasicBlock>(then_block_name);
   current_func->add_basic_block(std::move(then_block));
   current_bb = current_func->bbs.back().get();
 
   // enter a new scope for the then block
   enter_scope();
-  auto *block_ast = dynamic_cast<BlockAST *>(stmt_then.get());
+  auto *block_ast = dynamic_cast<StmtAST *>(stmt_then.get());
   if (!block_ast) {
-    throw std::runtime_error("Expecting BlockAST in IfStmtAST");
+    throw std::runtime_error("Expecting StmtAST in IfStmtAST");
   }
   block_ast->to_IR();
 
@@ -603,15 +611,18 @@ void handle_then_block(std::unique_ptr<BaseAST> stmt_then, const std::string &th
 }
 
 void handle_else_block(std::unique_ptr<BaseAST> stmt_else, const std::string &else_block_name, const std::string &end_block_name) {
+#ifdef DEBUG
+  std::cout << "enter else block." << std::endl;
+#endif
   auto else_block = std::make_unique<BasicBlock>(else_block_name);
   current_func->add_basic_block(std::move(else_block));
   current_bb = current_func->bbs.back().get();
 
   // enter a new scope for the else block
   enter_scope();
-  auto *block_ast = dynamic_cast<BlockAST *>(stmt_else.get());
+  auto *block_ast = dynamic_cast<StmtAST *>(stmt_else.get());
   if (!block_ast) {
-    throw std::runtime_error("Expecting BlockAST in IfStmtAST");
+    throw std::runtime_error("Expecting StmtAST in IfStmtAST");
   }
   block_ast->to_IR();
 
@@ -631,10 +642,11 @@ void IfStmtAST::to_IR() {
   auto end_block_name = get_end_temp();
   inc_if_cnt();
 
-  if (stmt_else) {
+  if (stmt_else != nullptr) {
     // br %1, %then_1, %else_1
     auto branch_inst = std::make_unique<BranchValue>(
         std::move(exp_value), then_block_name, else_block_name);
+    current_bb->add_inst(std::move(branch_inst));
 
     // handle then block
     handle_then_block(std::move(stmt_then), then_block_name, end_block_name);
@@ -644,6 +656,7 @@ void IfStmtAST::to_IR() {
     // br %1, %then_1, %end_1
     auto branch_inst = std::make_unique<BranchValue>(
         std::move(exp_value), then_block_name, end_block_name);
+    current_bb->add_inst(std::move(branch_inst));
     // handle then block
     handle_then_block(std::move(stmt_then), then_block_name, end_block_name);
   }
@@ -684,9 +697,12 @@ void WhileStmtAST::to_IR() {
   current_bb = current_func->bbs.back().get();
   // enter a new scope for the while body
   enter_scope();
-  auto *block_ast = dynamic_cast<BlockAST *>(stmt.get());
+#ifdef DEBUG
+  std::cout << "enter while body." << std::endl;
+#endif
+  auto *block_ast = dynamic_cast<StmtAST *>(stmt.get());
   if (!block_ast) {
-    throw std::runtime_error("Expecting BlockAST in WhileStmtAST");
+    throw std::runtime_error("Expecting StmtAST in WhileStmtAST");
   }
   block_ast->to_IR();
   // add a jump to the while entry block
@@ -707,10 +723,16 @@ std::string ExpAST::to_IR() {
   if (!lor_exp) {
     throw std::runtime_error("Expecting LOrExpAST in ExpAST");
   }
+#ifdef DEBUG
+  std::cout << "DEBUG: ExpAST::to_IR() called" << std::endl;
+#endif
   return lor_exp->to_IR();
 }
 
 std::string LOrExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: LOrExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // LAndExp
     auto *res =
@@ -735,6 +757,9 @@ std::string LOrExpAST::to_IR() {
 }
 
 std::string LAndExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: LAndExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // EqExp
     auto *res = dynamic_cast<EqExpAST *>(eqExp_landExp.get());
@@ -757,6 +782,9 @@ std::string LAndExpAST::to_IR() {
 }
 
 std::string EqExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: EqExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // RelExp
     auto *res = dynamic_cast<RelExpAST *>(relExp_eqExp.get());
@@ -780,6 +808,9 @@ std::string EqExpAST::to_IR() {
 }
 
 std::string RelExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: RelExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // AddExp
     auto *res = dynamic_cast<AddExpAST *>(addExp_relExp.get());
@@ -814,6 +845,9 @@ std::string RelExpAST::to_IR() {
 }
 
 std::string AddExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: AddExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // MulExp
     auto *res = dynamic_cast<MulExpAST *>(mulExp_addExp.get());
@@ -839,6 +873,9 @@ std::string AddExpAST::to_IR() {
 }
 
 std::string MulExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: MulExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // UnaryExp
     auto *res = dynamic_cast<UnaryExpAST *>(unaryExp_mulExp.get());
@@ -874,6 +911,9 @@ std::string MulExpAST::to_IR() {
 }
 
 std::string UnaryExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: UnaryExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // PrimaryExp
     auto *res = dynamic_cast<PrimaryExpAST *>(primaryExp_unaryExp_funcCall.get());
@@ -947,6 +987,9 @@ std::string FuncCallAST::to_IR() {
 }
 
 std::string PrimaryExpAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: PrimaryExpAST::to_IR() called" << std::endl;
+#endif
   if (type == 1) {
     // Exp
     auto *res = dynamic_cast<ExpAST *>(exp_number_lval.get());
@@ -971,9 +1014,16 @@ std::string PrimaryExpAST::to_IR() {
 }
 
 std::string LValAST::to_IR() {
+#ifdef DEBUG
+  std::cout << "DEBUG: LValAST::to_IR() called" << std::endl;
+#endif
   // LVal ::= Ident
-  if (!exist_sym(ident)) {
+  if (exist_sym("%" + ident)) {
+    return "%" + ident; // return the variable name
+  } else if (exist_sym("@" + ident)) {
+    return "@" + ident; // return the variable name
+  } else {
     throw std::runtime_error("Variable " + ident + " has no declaration.");
   }
-  return "@" + ident; // return the variable name
+
 }

@@ -1,5 +1,4 @@
 #include "IR.h"
-#include <cstddef>
 #include <string>
 
 std::string Int32Type::toString() const { return "i32"; }

@@ -70,6 +70,7 @@ public:
       stmt; // Too much variant so use "stmt" as a generic name
 
   void Dump(int) const override;
+  void to_IR();
 };
 
 // VarDeclStmt ::= "int" VarDef ";"

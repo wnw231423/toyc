@@ -296,7 +296,7 @@ public:
 
   std::string toString() const override {
     std::string res = "  ret";
-    if (value) {
+    if (value != nullptr) {
       return res + " " + value->toString();
     } else {
       return res;

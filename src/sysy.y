@@ -228,6 +228,7 @@ IfStmt
         auto if_ast = new IfStmtAST();
         if_ast->exp = unique_ptr<BaseAST>($3);
         if_ast->stmt_then = unique_ptr<BaseAST>($5);
+        if_ast->stmt_else = nullptr; // No else part
 
         $$ = if_ast;
     }
@@ -392,7 +393,7 @@ AddExp
     }
     | AddExp MINUS MulExp {
         auto ast = new AddExpAST();
-        ast->type = 3;
+        ast->type = 2;
         ast->add_op = "-";
         ast->mulExp_addExp = unique_ptr<BaseAST>($1);
         ast->mulExp = unique_ptr<BaseAST>($3);
@@ -438,6 +439,7 @@ UnaryExp
         auto ast = new UnaryExpAST();
         ast->type = 1;
         ast->primaryExp_unaryExp_funcCall = unique_ptr<BaseAST>($1);
+        $$ = ast;
     }
     | UnaryOp UnaryExp {
         auto ast = new UnaryExpAST();
