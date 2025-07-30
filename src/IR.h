@@ -255,7 +255,7 @@ public:
         value(std::move(val)), dest(std::move(de)) {}
 
   std::string toString() const override {
-    return "  store" + value->toString() + ", " + dest->toString();
+    return "  store " + value->toString() + ", " + dest->toString();
   }
 };
 
@@ -386,7 +386,7 @@ public:
     for (const auto &bb : bbs) {
       res += bb->toString();
     }
-    res += "}\n";
+    res += "}";
 
     return res;
   }
@@ -403,7 +403,7 @@ public:
   std::string toString() const {
     std::string result;
     for (const auto &func : funcs) {
-      result += func->toString() + "\n";
+      result += func->toString() + "\n\n";
     }
     return result;
   }

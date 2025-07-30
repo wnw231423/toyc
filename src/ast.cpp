@@ -1,4 +1,4 @@
-﻿#define DEBUG
+﻿//#define DEBUG
 
 #include <iostream>
 #include <sstream>
@@ -336,6 +336,11 @@ std::unique_ptr<Program> CompUnitAST::to_IR() {
 
     auto func_ir = func_def->to_IR();
     program->add_function(std::move(func_ir));
+
+    // clear the naming counter
+    temp_cnt = 0;
+    if_cnt = 0;
+    while_cnt = 0;
   }
 
   exit_scope();
@@ -433,6 +438,8 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
   }
   auto *b = dynamic_cast<BlockAST *>(block.get());
   b->to_IR();
+
+  exit_scope();
 
   return func;
 }
@@ -920,7 +927,7 @@ std::string UnaryExpAST::to_IR() {
     return res->to_IR();
   } else if (type == 2) {
     // UnaryOp PrimaryExp
-    auto *r = dynamic_cast<PrimaryExpAST *>(primaryExp_unaryExp_funcCall.get());
+    auto *r = dynamic_cast<UnaryExpAST *>(primaryExp_unaryExp_funcCall.get());
     auto rhs = std::make_unique<VarRefValue>(r->to_IR());
     auto temp_name = get_temp();
     if (unary_op == "-") {
@@ -928,11 +935,13 @@ std::string UnaryExpAST::to_IR() {
       auto lhs = std::make_unique<IntergerValue>(0);
       auto binary_inst = std::make_unique<BinaryValue>(
         temp_name, BinaryOp::SUB, std::move(lhs), std::move(rhs));
+      current_bb->add_inst(std::move(binary_inst));
     } else if (unary_op == "!") {
       // logical not
       auto lhs = std::make_unique<IntergerValue>(0);
       auto binary_inst = std::make_unique<BinaryValue>(
         temp_name,BinaryOp::EQ, std::move(lhs), std::move(rhs));
+      current_bb->add_inst(std::move(binary_inst));
     } else {
       throw std::runtime_error("Unsupported unary operator: " + unary_op);
     }
@@ -1021,9 +1030,12 @@ std::string LValAST::to_IR() {
   if (exist_sym("%" + ident)) {
     return "%" + ident; // return the variable name
   } else if (exist_sym("@" + ident)) {
-    return "@" + ident; // return the variable name
+    auto load_temp_name = get_temp();
+    auto source = std::make_unique<VarRefValue>("@" + ident);
+    auto load_inst = std::make_unique<LoadValue>(load_temp_name, std::move(source));
+    current_bb->add_inst(std::move(load_inst));
+    return load_temp_name;
   } else {
     throw std::runtime_error("Variable " + ident + " has no declaration.");
   }
-
 }
