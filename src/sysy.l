@@ -10,6 +10,8 @@
 using namespace std;
 %}
 
+%x COMMENT
+
 WhiteSpace [ \t\n\r]+
 
 LineComment "//".*
@@ -21,7 +23,13 @@ Decimal 0|[1-9][0-9]*
 %%
 
 {WhiteSpace} {}
+
 {LineComment} {}
+
+"/*"            { BEGIN(COMMENT); }
+<COMMENT>"*/"   { BEGIN(INITIAL); }
+<COMMENT>\n     { }
+<COMMENT>.      { }
 
 "return" { return RETURN; }
 

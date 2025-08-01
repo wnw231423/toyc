@@ -1,8 +1,34 @@
+/**
+ * Definition of the IR for toy C language.
+ * This design referred to the pku compiler class doc (https://pku-minic.github.io/online-doc/#/misc-app-ref/sysy-spec).
+ *
+ * The IR is composed of two parts:
+ * 1. IRType:
+ *  1. Int32Type,
+ *  2. FunctionType,
+ *  3. UnitType
+ *
+ * 2. IRValue:
+ *  A program is composed of functions, and each function is composed of basic blocks.
+ *  Every basic block is composed of IRValues.
+ *  IRValue includes:
+ *    1. IntergerValue, i.e. 42
+ *    2. FuncArgRefValue, // A special value that refers to function arguments.
+ *    3. VarRefValue, i.e. foo // Means a variable reference.
+ *    4. AllocValue, i.e. %a = alloc i32
+ *    5. LoadValue, i.e. %b = load %a
+ *    6. StoreValue, i.e. store %b, %a
+ *    7. BinaryValue, i.e. %c = add %a, %b
+ *    8. BranchValue, i.e. br %cond, true_block, false_block
+ *    9. JumpValue, i.e. jump target_block
+ *    10. CallValue, i.e. %d = call foo(%a, %b)
+ *    11. ReturnValue, i.e. ret %d
+ */
+
 #ifndef IR_H
 #define IR_H
 
 #include <algorithm>
-#include <cstddef>
 #include <exception>
 #include <memory>
 #include <string>
