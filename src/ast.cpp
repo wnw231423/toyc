@@ -403,6 +403,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
       auto func_arg_ref =
           std::make_unique<FuncArgRefValue>(i, "@" + fparam->ident);
       func->add_param(std::move(func_arg_ref));
+      insert_sym("@" + fparam->ident, sym_type::SYM_TYPE_VAR, 0);
     }
   }
 
@@ -582,14 +583,19 @@ void VarAssignStmtAST::to_IR() {
   }
 
   // check if var exists in the current scope.
-  if (!exist_sym("@" + lval_ast->ident)) {
+  std::string lval_name;
+  if (exist_sym("%" + lval_ast->ident)) {
+    lval_name = "%" + lval_ast->ident;
+  } else if (exist_sym("@" + lval_ast->ident)) {
+    lval_name = "@" + lval_ast->ident;
+  } else {
     throw std::runtime_error("Variable " + lval_ast->ident + " has no declaration.");
   }
 
   auto *exp_ast = dynamic_cast<ExpAST *>(exp.get());
   auto exp_temp_name = exp_ast->to_IR();
   auto source = std::make_unique<VarRefValue>(exp_temp_name);
-  auto dest = std::make_unique<VarRefValue>("@" + lval_ast->ident);
+  auto dest = std::make_unique<VarRefValue>(lval_name);
   auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
   current_bb->add_inst(std::move(store_inst));
 }
