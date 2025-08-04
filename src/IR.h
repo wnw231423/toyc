@@ -261,10 +261,11 @@ public:
 class LoadValue : public IRValue {
 public:
   std::unique_ptr<IRValue> src;
+  int type;  // 0 for load, 1 for li
 
-  LoadValue(const std::string &result_name, std::unique_ptr<IRValue> source)
+  LoadValue(const std::string &result_name, std::unique_ptr<IRValue> source, int t = 0)
       : IRValue(IRValueTag::LOAD, std::make_unique<Int32Type>(), result_name),
-        src(std::move(source)) {}
+        src(std::move(source)), type(t) {}
 
   std::string toString() const override {
     return "  " + name + " = load " + src->toString();
@@ -295,6 +296,10 @@ public:
             std::unique_ptr<IRType> ret_type)
       : IRValue(IRValueTag::CALL, std::move(ret_type), result_name),
         callee(func_name), args(std::move(arguments)) {}
+
+  std::string get_callee() const {
+    return callee.substr(1); // remove '@' prefix
+  }
 
   std::string toString() const override {
     std::string res = "  ";
@@ -370,6 +375,10 @@ public:
     insts.push_back(std::move(inst));
   }
 
+  std::string get_name() {
+    return name.substr(1);
+  }
+
   std::string toString() const {
     std::string res = name + ":\n";
     for (const auto &inst : insts) {
@@ -385,6 +394,7 @@ public:
   std::unique_ptr<FunctionType> f_type;
   std::vector<std::unique_ptr<IRValue>> params;
   std::vector<std::unique_ptr<BasicBlock>> bbs; // basic blocks
+  int local_var_count = 0; // number of local variables
 
   Function(const std::string &func_name,
            std::unique_ptr<FunctionType> func_type)
@@ -396,6 +406,14 @@ public:
 
   void add_basic_block(std::unique_ptr<BasicBlock> bb) {
     bbs.push_back(std::move(bb));
+  }
+
+  int get_param_count() const {
+    return static_cast<int>(params.size());
+  }
+
+  std::string get_func_name() const {
+    return name.substr(1); // remove '@' prefix
   }
 
   std::string toString() const {

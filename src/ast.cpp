@@ -17,6 +17,7 @@ static BasicBlock *current_bb;
 // the counter and the function for %xxx.
 static int temp_cnt = 0;
 std::string get_temp() {
+  current_func->local_var_count++;
   std::ostringstream oss;
   oss << "%" << temp_cnt++;
   return oss.str();
@@ -26,15 +27,15 @@ std::string get_temp() {
 // should inc if_cnt on your own.
 static int if_cnt = 0;
 std::string get_then_temp() {
-  return "%then_" + std::to_string(if_cnt);
+  return "%" + current_func->get_func_name() + "_" + "then_" + std::to_string(if_cnt);
 }
 
 std::string get_else_temp() {
-  return "%else_" + std::to_string(if_cnt);
+  return "%" + current_func->get_func_name() + "_" + "else_" + std::to_string(if_cnt);
 }
 
 std::string get_end_temp() {
-  return "%if_end_" + std::to_string(if_cnt);
+  return "%" + current_func->get_func_name() + "_" + "if_end_" + std::to_string(if_cnt);
 }
 
 void inc_if_cnt() {
@@ -45,15 +46,15 @@ void inc_if_cnt() {
 // should inc while_cnt on your own.
 static int while_cnt = 0;
 std::string get_while_entry_temp() {
-  return "%while_entry_" + std::to_string(while_cnt);
+  return "%" + current_func->get_func_name() + "_" + "while_entry_" + std::to_string(while_cnt);
 }
 
 std::string get_while_body_temp() {
-  return "%while_body_" + std::to_string(while_cnt);
+  return "%" + current_func->get_func_name() + "_" + "while_body_" + std::to_string(while_cnt);
 }
 
 std::string get_while_end_temp() {
-  return "%while_end_" + std::to_string(while_cnt);
+  return "%" + current_func->get_func_name() + "_" + "while_end_" + std::to_string(while_cnt);
 }
 
 void inc_while_cnt() {
@@ -404,6 +405,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
           std::make_unique<FuncArgRefValue>(i, "@" + fparam->ident);
       func->add_param(std::move(func_arg_ref));
       insert_sym("@" + fparam->ident, sym_type::SYM_TYPE_VAR, 0);
+      func->local_var_count++;
     }
   }
 
@@ -560,6 +562,7 @@ void VarDeclStmtAST::to_IR() {
   auto exp_temp_name = exp_ast->to_IR();
   auto alloc_inst = std::make_unique<AllocValue>("@"+var_def_ast->ident);
   current_bb->add_inst(std::move(alloc_inst));
+  current_func->local_var_count++;
 
   auto source = std::make_unique<VarRefValue>(exp_temp_name);
   auto dest = std::make_unique<VarRefValue>("@" + var_def_ast->ident);
@@ -1017,8 +1020,8 @@ std::string PrimaryExpAST::to_IR() {
     }
     auto temp_name = get_temp();
     auto number_value = std::make_unique<IntergerValue>(number_ast->value);
-    auto number_inst = std::make_unique<BinaryValue>(
-        temp_name, BinaryOp::ADD, std::make_unique<IntergerValue>(0), std::move(number_value));
+    auto number_inst =
+      std::make_unique<LoadValue>(temp_name, std::move(number_value), 1);
     current_bb->add_inst(std::move(number_inst));
     return temp_name;
   } else if (type == 3) {
