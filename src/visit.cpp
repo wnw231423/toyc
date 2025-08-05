@@ -36,9 +36,10 @@ std::string visit_program(std::unique_ptr<Program> program) {
         // record the number of parameters for each function
         func_param_counts[func->get_func_name()] = func->get_param_count();
     }
-    oss << "  .globl main" << func->get_func_name() << "\n";
+
     // begin to visit
     std::ostringstream oss;
+    oss << "  .globl main" << func->get_func_name() << "\n";
     for (const auto &func : program->funcs) {
         oss << visit_function(std::move(func)) << "\n";
     }
