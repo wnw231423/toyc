@@ -39,9 +39,9 @@ std::string visit_program(std::unique_ptr<Program> program) {
 
     // begin to visit
     std::ostringstream oss;
-    oss << "  .text\n";
-    oss << "  .globl main;\n";
     for (const auto &func : program->funcs) {
+        oss << "  .text\n";
+        oss << "  .globl " << func->get_func_name() << "\n";
         oss << visit_function(std::move(func)) << "\n";
     }
 
@@ -97,10 +97,10 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
         auto *param_ref = dynamic_cast<FuncArgRefValue*>(param.get());
         if (param_ref) {
             if (param_ref->index < 8) {
-                local_var_indices[param_ref->name.substr(1)] = "a" + std::to_string(param_ref->index);
+                local_var_indices[param_ref->name] = "a" + std::to_string(param_ref->index);
             } else {
                 // extra parameters are stored in the stack of function who calls this function
-                local_var_indices[param_ref->name.substr(1)] =
+                local_var_indices[param_ref->name] =
                     std::to_string(stack_size + 4 * (param_ref->index - 8)) + "(sp)";
             }
         } else {
@@ -187,21 +187,22 @@ std::string visit_value(const std::unique_ptr<IRValue> &value) {
 }
 
 void visit_alloc_value(const AllocValue* value) {
-    local_var_indices[value->name.substr(1)] = std::to_string(cur_local_var_index) + "(sp)";
+    local_var_indices[value->name] = std::to_string(cur_local_var_index) + "(sp)";
     cur_local_var_index += 4;
 }
 
 std::string visit_load_value(const LoadValue* value) {
     std::ostringstream oss;
     if (value->type == 0) {
-        std::string src_index = get_local_var_index(value->src->name.substr(1));
-        std::string result_index = get_local_var_index(value->name.substr(1));
+        std::string src_index = get_local_var_index(value->src->name);
+        std::string result_index = get_local_var_index(value->name);
 
         oss << "  lw t0, " << src_index << "\n";
         oss << "  sw t0, " << result_index;
+
     } else if (value->type == 1) {
         // load immediate value
-        std::string result_index = get_local_var_index(value->name.substr(1));
+        std::string result_index = get_local_var_index(value->name);
         auto int_value = dynamic_cast<IntergerValue*>(value->src.get());
         oss << "  li t0, " << int_value->value << "\n";
         oss << "  sw t0, " << result_index;
@@ -215,9 +216,9 @@ std::string visit_load_value(const LoadValue* value) {
 std::string visit_binary_value(const  BinaryValue* value) {
     std::ostringstream oss;
 
-    std::string lhs_index = get_local_var_index(value->lhs->name.substr(1));
-    std::string rhs_index = get_local_var_index(value->rhs->name.substr(1));
-    std::string result_index = get_local_var_index(value->name.substr(1));
+    std::string lhs_index = get_local_var_index(value->lhs->name);
+    std::string rhs_index = get_local_var_index(value->rhs->name);
+    std::string result_index = get_local_var_index(value->name);
 
     oss << "  lw t0, " << lhs_index << "\n";
     oss << "  lw t1, " << rhs_index << "\n";
@@ -266,11 +267,17 @@ std::string visit_binary_value(const  BinaryValue* value) {
 std::string visit_store_value(const StoreValue* value) {
     std::ostringstream oss;
 
-    std::string src_index = get_local_var_index(value->value->name.substr(1));
-    std::string dest_index = get_local_var_index(value->dest->name.substr(1));
+    std::string src_index = get_local_var_index(value->value->name);
+    std::string dest_index = get_local_var_index(value->dest->name);
 
-    oss << "  lw t0, " << src_index << "\n";
-    oss << "  sw t0, " << dest_index;
+    // TODO: hot fix. NOT a good way to handle this.
+    if (src_index.at(0) == 'a') {
+        oss << "  mv t0, " << src_index << "\n";
+        oss << "  sw t0, " << dest_index << "\n";
+    } else {
+        oss << "  lw t0, " << src_index << "\n";
+        oss << "  sw t0, " << dest_index;
+    }
 
     return oss.str();
 }
@@ -281,7 +288,7 @@ std::string visit_call_value(const CallValue* value) {
     // prepare arguments
     int arg_count = value->args.size();
     for (int i = 0; i < arg_count; ++i) {
-        std::string arg_index = get_local_var_index(value->args[i]->name.substr(1));
+        std::string arg_index = get_local_var_index(value->args[i]->name);
         if (i < 8) {
             oss << "  lw a" << i << ", " << arg_index << "\n"; // a0-a7
         } else {
@@ -298,7 +305,7 @@ std::string visit_call_value(const CallValue* value) {
 
     // save return value
     if (!value->name.empty()) {
-        std::string result_index = get_local_var_index(value->name.substr(1));
+        std::string result_index = get_local_var_index(value->name);
         oss << "  sw a0, " << result_index << "\n"; // return value in a0
     }
 
@@ -308,7 +315,7 @@ std::string visit_call_value(const CallValue* value) {
 std::string visit_return_value(const ReturnValue* value) {
     std::ostringstream oss;
     if (value->value != nullptr) {
-        oss << "  lw a0, " << get_local_var_index(value->value->name.substr(1)) << "\n"; // return value in a0
+        oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
     }
     // do epilogue
     oss << "  addi sp, sp, " << stack_size << "\n"; // restore stack pointer
@@ -320,7 +327,7 @@ std::string visit_return_value(const ReturnValue* value) {
 std::string visit_branch_value(const BranchValue* value) {
     std::ostringstream oss;
 
-    oss << "  lw t0, " << get_local_var_index(value->cond->name.substr(1)) << "\n"; // load condition
+    oss << "  lw t0, " << get_local_var_index(value->cond->name) << "\n"; // load condition
     oss << "  beqz t0, " << value->false_block.substr(1) << "\n"; // if condition is zero, branch to false block
     oss << "  j " << value->true_block.substr(1) << "\n"; // otherwise, jump to true block
 
