@@ -32,14 +32,14 @@ std::string get_local_var_index(std::string var_name) {
 
 std::string visit_program(std::unique_ptr<Program> program) {
     // init works
-    for (const auto &func: program->funcs) {
+    for (const auto &func: program->funcs)  {
         // record the number of parameters for each function
         func_param_counts[func->get_func_name()] = func->get_param_count();
     }
-    oss << "  .globl main" << func->get_func_name() << "\n";
+
     // begin to visit
     std::ostringstream oss;
-    oss << "  .globl main\n";
+    oss << "  .globl main" << func->get_func_name() << "\n";
     for (const auto &func : program->funcs) {
         oss << visit_function(std::move(func)) << "\n";
     }
