@@ -13,7 +13,7 @@ BFLAGS := -d
 
 # Directories
 TOP_DIR := $(shell pwd)
-TARGET_EXEC := compiler
+TARGET_EXEC := main
 SRC_DIR := $(TOP_DIR)/src
 BUILD_DIR ?= $(TOP_DIR)
 
