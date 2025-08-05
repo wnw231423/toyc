@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -23,6 +24,8 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
  * The output will be the AST representation of the source code.
  */
 int main(int argc, char *argv[]) {
+    int opt = 0;
+
     yyin = stdin;
     assert(yyin);
 
@@ -31,8 +34,20 @@ int main(int argc, char *argv[]) {
     assert(!ret);
 
     auto comp_unit = dynamic_cast<CompUnitAST *>(ast.get());
-    cout << visit_program(comp_unit->to_IR()) << endl;
 
+    for (int i = 0; i < argc; ++i) {
+        if (strcmp(argv[i], "-opt") == 0) {
+            opt = 1;
+        }
+    }
 
+    if (opt) {
+        auto program = comp_unit->to_IR();
+        InlineOptimizer optimizer(3, 50);
+        optimizer.optimize(program.get());
+        cout << visit_program(std::move(program)) << endl;
+    } else {
+        cout << visit_program(comp_unit->to_IR()) << endl;
+    }
     return 0;
 }
