@@ -15,7 +15,7 @@ BFLAGS := -d
 TOP_DIR := $(shell pwd)
 TARGET_EXEC := main
 SRC_DIR := $(TOP_DIR)/src
-BUILD_DIR ?= $(TOP_DIR)
+BUILD_DIR ?= $(TOP_DIR)/build
 
 # Source files and object files
 FB_SRCS := $(patsubst $(SRC_DIR)/%.l, $(BUILD_DIR)/%.lex$(FB_EXT), $(shell find $(SRC_DIR) -name "*.l"))
