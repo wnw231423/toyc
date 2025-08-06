@@ -402,7 +402,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
     for (size_t i = 0; i < fparams->size(); ++i) {
       auto *fparam = dynamic_cast<FuncFParamAST *>((*fparams)[i].get());
       auto func_arg_ref =
-          std::make_unique<FuncArgRefValue>(i, "@" + fparam->ident);
+          std::make_unique<FuncArgRefValue>(i, "@" + get_scope_number() + fparam->ident);
       func->add_param(std::move(func_arg_ref));
       insert_sym("@" + fparam->ident, sym_type::SYM_TYPE_VAR, 0);
       func->local_var_count++;
@@ -443,6 +443,12 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
   b->to_IR();
 
   exit_scope();
+
+  // TODO: hot fix. not a good way to handle ret in void function.
+  if (func->f_type->return_type->equals(*std::make_unique<UnitType>())) {
+    // add a return value
+    current_bb->add_inst(std::make_unique<ReturnValue>());
+  }
 
   return func;
 }
@@ -511,14 +517,14 @@ void StmtAST::to_IR() {
     }
     case 9: {
       // jump %while_end_xxx
-      std::string while_end_name = "%while_end_" + std::to_string(cur_while);
+      std::string while_end_name = "%" + current_func->get_func_name() + "_while_end_" + std::to_string(cur_while);
       auto jump_inst_break = std::make_unique<JumpValue>(while_end_name);
       current_bb->add_inst(std::move(jump_inst_break));
       break;
     }
     case 10: {
       // jump %while_entry_xxx
-      std::string while_entry_name = "%while_entry_" + std::to_string(cur_while);
+      std::string while_entry_name = "%" + current_func->get_func_name() + "_while_entry_" + std::to_string(cur_while);
       auto jump_inst_continue = std::make_unique<JumpValue>(while_entry_name);
       current_bb->add_inst(std::move(jump_inst_continue));
       break;
