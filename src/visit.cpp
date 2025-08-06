@@ -233,17 +233,21 @@ std::string visit_binary_value(const  BinaryValue* value) {
     } else if (value->op == BinaryOp::MOD) {
         oss << "  rem t2, t0, t1\n";
     } else if (value->op == BinaryOp::EQ) {
-        oss << "  seqz t2, t0, t1\n";
+        oss << "  sub t2, t0, t1\n";
+        oss << "  seqz t2, t2\n";
     } else if (value->op == BinaryOp::NE) {
-        oss << "  snez t2, t0, t1\n";
+        oss << "  sub t2, t0, t1\n";
+        oss << "  snez t2, t2\n";
     } else if (value->op == BinaryOp::LT) {
         oss << "  slt t2, t0, t1\n";
     } else if (value->op == BinaryOp::LE) {
-        oss << "  sle t2, t0, t1\n";
+        oss << "  sgt t2, t0, t1\n";
+        oss << "  seqz t2, t2\n";
     } else if (value->op == BinaryOp::GT) {
         oss << "  sgt t2, t0, t1\n";
     } else if (value->op == BinaryOp::GE) {
-        oss << "  sge t2, t0, t1\n";
+        oss << "  slt t2, t0, t1\n";
+        oss << "  seqz t2, t2\n";
     } else if (value->op == BinaryOp::AND) {
         oss << "  and t2, t0, t1\n";
     } else if (value->op == BinaryOp::OR) {

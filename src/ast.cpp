@@ -426,13 +426,13 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
 
       if (fparam->type == "int") {
         std::string param_local_name = "%" + fparam->ident;
-        auto alloc_inst = std::make_unique<AllocValue>(param_local_name);
+        auto alloc_inst = std::make_unique<AllocValue>("%_" + get_scope_number() + fparam->ident);
         current_bb->add_inst(std::move(alloc_inst));
 
         std::string param_arg_name = "@" + fparam->ident;
         auto store_inst = std::make_unique<StoreValue>(
-            std::make_unique<VarRefValue>(param_arg_name),
-            std::make_unique<VarRefValue>(param_local_name));
+            std::make_unique<VarRefValue>("@_" + get_scope_number() + fparam->ident),
+            std::make_unique<VarRefValue>("%_" + get_scope_number() + fparam->ident));
         current_bb->add_inst(std::move(store_inst));
 
         insert_sym(param_local_name, sym_type::SYM_TYPE_VAR, 0);
@@ -448,6 +448,7 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
 }
 
 void BlockAST::to_IR() {
+  enter_scope();
   for (const auto &stmt_base : *stmts) {
     auto *stmt = dynamic_cast<StmtAST *>(stmt_base.get());
     if (!stmt) {
@@ -456,6 +457,7 @@ void BlockAST::to_IR() {
 
     stmt->to_IR();
   }
+  exit_scope();
 }
 
 void StmtAST::to_IR() {
@@ -560,17 +562,17 @@ void VarDeclStmtAST::to_IR() {
   // VarDef ::= Ident "=" Exp
   auto *exp_ast = dynamic_cast<ExpAST *>(var_def_ast->exp.get());
   auto exp_temp_name = exp_ast->to_IR();
-  auto alloc_inst = std::make_unique<AllocValue>("@"+var_def_ast->ident);
+  auto alloc_inst = std::make_unique<AllocValue>("@_" + get_scope_number() + var_def_ast->ident);
   current_bb->add_inst(std::move(alloc_inst));
   current_func->local_var_count++;
 
   auto source = std::make_unique<VarRefValue>(exp_temp_name);
-  auto dest = std::make_unique<VarRefValue>("@" + var_def_ast->ident);
+  auto dest = std::make_unique<VarRefValue>("@_" + get_scope_number() + var_def_ast->ident);
   auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
   current_bb->add_inst(std::move(store_inst));
 
   // insert the variable into the symbol table
-  if (exist_sym("@" + var_def_ast->ident)) {
+  if (exist_sym_local("@" + var_def_ast->ident)) {
     throw std::runtime_error("Variable " + var_def_ast->ident + " already exists.");
   }
   insert_sym("@" + var_def_ast->ident, sym_type::SYM_TYPE_VAR, 0);
@@ -588,9 +590,9 @@ void VarAssignStmtAST::to_IR() {
   // check if var exists in the current scope.
   std::string lval_name;
   if (exist_sym("%" + lval_ast->ident)) {
-    lval_name = "%" + lval_ast->ident;
+    lval_name = "%" + query_sym("%" + lval_ast->ident).first + lval_ast->ident;
   } else if (exist_sym("@" + lval_ast->ident)) {
-    lval_name = "@" + lval_ast->ident;
+    lval_name = "@" + query_sym("@" + lval_ast->ident).first  + lval_ast->ident;
   } else {
     throw std::runtime_error("Variable " + lval_ast->ident + " has no declaration.");
   }
@@ -951,6 +953,11 @@ std::string UnaryExpAST::to_IR() {
       auto binary_inst = std::make_unique<BinaryValue>(
         temp_name,BinaryOp::EQ, std::move(lhs), std::move(rhs));
       current_bb->add_inst(std::move(binary_inst));
+    } else if (unary_op == "+") {
+      auto lhs = std::make_unique<IntergerValue>(0);
+      auto binary_inst = std::make_unique<BinaryValue>(
+        temp_name, BinaryOp::ADD, std::move(lhs), std::move(rhs));
+      current_bb->add_inst(std::move(binary_inst));
     } else {
       throw std::runtime_error("Unsupported unary operator: " + unary_op);
     }
@@ -968,14 +975,14 @@ std::string FuncCallAST::to_IR() {
   // FuncCall ::= Ident "(" [RParams] ")"
   // RParams ::= Exp {"," Exp}
   std::string func_name = "@" + ident;
-  if (!exist_sym(func_name)) {
+  if (!exist_sym(func_name, 1)) {
     throw std::runtime_error("Function " + ident + " has no declaration.");
   }
 
   auto func_type = query_sym(func_name).second->type;
-  if ((func_type != sym_type::SYM_TYPE_INTF) && (func_type != sym_type::SYM_TYPE_VOIDF)) {
-    throw std::runtime_error(ident + " is not a function.");
-  }
+  // if ((func_type != sym_type::SYM_TYPE_INTF) && (func_type != sym_type::SYM_TYPE_VOIDF)) {
+  //   throw std::runtime_error(ident + " is not a function.");
+  // }
 
   std::vector<std::unique_ptr<IRValue>> args;
   if (rparams) {
@@ -1037,14 +1044,16 @@ std::string LValAST::to_IR() {
 #endif
   // LVal ::= Ident
   if (exist_sym("%" + ident)) {
-    return "%" + ident; // return the variable name
-  } else if (exist_sym("@" + ident)) {
+    return "%" + query_sym("%" + ident).first + ident; // return the variable name
+  }
+
+  if (exist_sym("@" + ident)) {
     auto load_temp_name = get_temp();
-    auto source = std::make_unique<VarRefValue>("@" + ident);
+    auto source = std::make_unique<VarRefValue>("@" + query_sym("@" + ident).first + ident);
     auto load_inst = std::make_unique<LoadValue>(load_temp_name, std::move(source));
     current_bb->add_inst(std::move(load_inst));
     return load_temp_name;
-  } else {
-    throw std::runtime_error("Variable " + ident + " has no declaration.");
   }
+
+  throw std::runtime_error("Variable " + ident + " has no declaration.");
 }

@@ -26,16 +26,19 @@ void exit_scope();
 void insert_sym(const std::string &symbol, sym_type type, int value);
 
 // check if a symbol exist. 0 for false, 1 for true.
-int exist_sym(const std::string &symbol);
+int exist_sym(const std::string &symbol, int type = 0);
+
+// check if a symbol exists in the current scope only.
+int exist_sym_local(const std::string &symbol, int type = 0);
 
 // get table number in string form
 // e.g. "SYM_TABLE_42_"
 std::string get_scope_number();
 
 // given a symbol, return a pair which includes
-// fst: symbol number, string
+// fst: symbol table number, string
 // snd: sym_v
 std::pair<std::string, std::shared_ptr<const sym_v>>
-query_sym(const std::string &symbol);
+query_sym(const std::string &symbol, int type = 0);
 
 #endif // !SYMTABLE_H
