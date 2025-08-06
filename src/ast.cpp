@@ -426,13 +426,13 @@ std::unique_ptr<Function> FuncDefAST::to_IR() {
 
       if (fparam->type == "int") {
         std::string param_local_name = "%" + fparam->ident;
-        auto alloc_inst = std::make_unique<AllocValue>("%_" + get_scope_number() + fparam->ident);
+        auto alloc_inst = std::make_unique<AllocValue>("%" + get_scope_number() + fparam->ident);
         current_bb->add_inst(std::move(alloc_inst));
 
         std::string param_arg_name = "@" + fparam->ident;
         auto store_inst = std::make_unique<StoreValue>(
-            std::make_unique<VarRefValue>("@_" + get_scope_number() + fparam->ident),
-            std::make_unique<VarRefValue>("%_" + get_scope_number() + fparam->ident));
+            std::make_unique<VarRefValue>("@" + get_scope_number() + fparam->ident),
+            std::make_unique<VarRefValue>("%" + get_scope_number() + fparam->ident));
         current_bb->add_inst(std::move(store_inst));
 
         insert_sym(param_local_name, sym_type::SYM_TYPE_VAR, 0);
@@ -562,12 +562,12 @@ void VarDeclStmtAST::to_IR() {
   // VarDef ::= Ident "=" Exp
   auto *exp_ast = dynamic_cast<ExpAST *>(var_def_ast->exp.get());
   auto exp_temp_name = exp_ast->to_IR();
-  auto alloc_inst = std::make_unique<AllocValue>("@_" + get_scope_number() + var_def_ast->ident);
+  auto alloc_inst = std::make_unique<AllocValue>("@" + get_scope_number() + var_def_ast->ident);
   current_bb->add_inst(std::move(alloc_inst));
   current_func->local_var_count++;
 
   auto source = std::make_unique<VarRefValue>(exp_temp_name);
-  auto dest = std::make_unique<VarRefValue>("@_" + get_scope_number() + var_def_ast->ident);
+  auto dest = std::make_unique<VarRefValue>("@" + get_scope_number() + var_def_ast->ident);
   auto store_inst = std::make_unique<StoreValue>(std::move(source), std::move(dest));
   current_bb->add_inst(std::move(store_inst));
 
