@@ -39,7 +39,6 @@ std::string visit_program(std::unique_ptr<Program> program) {
 
     // begin to visit
     std::ostringstream oss;
-
     oss << "  .globl main\n";
     for (const auto &func : program->funcs) {
         oss << visit_function(std::move(func)) << "\n";
