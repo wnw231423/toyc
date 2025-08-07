@@ -37,7 +37,8 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < argc; ++i) {
         if (strcmp(argv[i], "-opt") == 0) {
-            opt = 1;
+            //opt = 1;
+            opt = 0;
         }
     }
 
