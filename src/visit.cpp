@@ -78,7 +78,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     // 4. ra if this function calls other functions
     ra_space = (if_call_other_functions == 1) ? 4 : 0;
     int extra_param_count_for_calling = std::max(0, max_calling_param_count - 8);
-    int temp = 4 * (local_var_count + ra_space + extra_param_count_for_calling);
+    int temp = 4 * (local_var_count + extra_param_count_for_calling) + ra_space;
     // align to 16
     stack_size = (temp + 15) & ~15;
 
