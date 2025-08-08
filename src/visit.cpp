@@ -346,7 +346,13 @@ std::string visit_return_value(const ReturnValue* value) {
         oss << move(return_value_index, a0) << "\n"; // move return value to a0
     }
     // do epilogue
-    oss << "  addi sp, sp, " << stack_size << "\n"; // restore stack pointer
+    if (stack_size < 2048 && stack_size >= -2048) {
+        oss << "  addi sp, sp, " << stack_size << "\n";
+    } else {
+        oss << "  li t6, " << stack_size << "\n" // load immediate value
+            << "  add sp, sp, t6\n"; // adjust stack pointer
+    }
+
     oss << "  ret\n"; // return from function
 
     return oss.str();
