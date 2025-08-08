@@ -50,7 +50,7 @@ std::string move(Position src, Position dest) {
     }
 
     // mem -> mem
-    Position temp_reg("t6");
+    Position temp_reg("t0");
     return move(src, temp_reg) + move(temp_reg, dest);
 }
 
