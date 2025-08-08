@@ -196,7 +196,7 @@ std::string visit_value(const std::unique_ptr<IRValue> &value) {
 }
 
 void visit_alloc_value(const AllocValue* value) {
-    local_var_indices[value->name] = std::to_string(cur_local_var_index) + "(sp)";
+    local_var_indices[value->name] = Position(cur_local_var_index);
     cur_local_var_index += 4;
 }
 
