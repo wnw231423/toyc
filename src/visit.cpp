@@ -87,7 +87,13 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     local_var_indices.clear();
 
     // prologue
-    oss << "  addi sp, sp, -" << stack_size << "\n";
+    if (stack_size < 2048 && stack_size >= -2048) {
+        oss << "  addi sp, sp, -" << stack_size << "\n";
+    } else {
+        oss << "  li t6, " << -stack_size << "\n" // load immediate value
+            << "  add sp, sp, t6\n"; // adjust stack pointer
+    }
+
     if (if_call_other_functions != 0) {
         // should done by caller, but we do ahead.
         //oss << "  sw ra, " << (stack_size - 4) << "(sp)\n"; // save return address
