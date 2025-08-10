@@ -25,7 +25,7 @@ std::string move(Position src, Position dest) {
     if (src.type == 0) {
         // reg -> reg
         if (dest.type == 0) {
-            return "  mv " + src.reg_name + ", " + dest.reg_name + "\n"; // Register to Register
+            return "  mv " + dest.reg_name + ", " + src.reg_name + "\n"; // Register to Register
         }
 
         // reg -> mem
