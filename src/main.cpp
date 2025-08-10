@@ -78,14 +78,7 @@ int main(int argc, char *argv[]) {
         cout << visit_program(std::move(program)) << endl;
     } else {
         auto ir = comp_unit->to_IR();
-
-        RegisterAllocator allocator;
-        for (auto &func : ir->funcs) {
-            auto liveness = allocator.performLivenessAnalysis(func.get());
-            auto allocation = allocator.performLinearScanAllocation(liveness);
-        }
-
-        cout << ir -> toString() << endl;
+        cout << visit_program(std::move(ir)) << endl;
     }
 
     return 0;
