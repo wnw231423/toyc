@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "visit.h"
 #include "inline.h"
+#include "register_allocation.h"
 
 using namespace std;
 
@@ -76,7 +77,15 @@ int main(int argc, char *argv[]) {
         cout << "// 内联优化后的汇编代码:" << endl;
         cout << visit_program(std::move(program)) << endl;
     } else {
-        cout << visit_program(comp_unit->to_IR()) << endl;
+        auto ir = comp_unit->to_IR();
+
+        RegisterAllocator allocator;
+        for (auto &func : ir->funcs) {
+            auto liveness = allocator.performLivenessAnalysis(func.get());
+            auto allocation = allocator.performLinearScanAllocation(liveness);
+        }
+
+        cout << ir -> toString() << endl;
     }
 
     return 0;
