@@ -278,64 +278,64 @@ void RegisterAllocator::computeLiveIntervals(Function* func, LivenessAnalysis& a
 LivenessAnalysis RegisterAllocator::performLivenessAnalysis(Function* func) {
     LivenessAnalysis analysis;
     
-    std::cout << "\n=== 开始活跃变量分析 ===" << std::endl;
+    //std::cout << "\n=== 开始活跃变量分析 ===" << std::endl;
     
     // 1. 构建控制流图
     buildControlFlowGraph(func);
-    std::cout << "1. 构建控制流图完成" << std::endl;
+    //std::cout << "1. 构建控制流图完成" << std::endl;
     
     // 2. 为指令编号
     numberInstructions(func);
-    std::cout << "2. 指令编号完成，总共 " << total_instructions << " 条指令" << std::endl;
+    //std::cout << "2. 指令编号完成，总共 " << total_instructions << " 条指令" << std::endl;
     
     // 3. 计算def和use集合
     computeDefUse(func, analysis);
-    std::cout << "3. 计算def/use集合完成" << std::endl;
+    //std::cout << "3. 计算def/use集合完成" << std::endl;
     
     // 4. 计算live_in和live_out
     computeLiveInOut(func, analysis);
-    std::cout << "4. 计算live_in/live_out完成" << std::endl;
+    //std::cout << "4. 计算live_in/live_out完成" << std::endl;
     
     // 5. 计算活跃区间
     computeLiveIntervals(func, analysis);
-    std::cout << "5. 计算活跃区间完成，共 " << analysis.live_intervals.size() << " 个区间" << std::endl;
+    //std::cout << "5. 计算活跃区间完成，共 " << analysis.live_intervals.size() << " 个区间" << std::endl;
     
     // 输出分析结果
-    std::cout << "\n=== 活跃变量分析结果 ===" << std::endl;
+    //std::cout << "\n=== 活跃变量分析结果 ===" << std::endl;
     for (const auto& bb : func->bbs) {
         const std::string& bb_name = bb->name;
-        std::cout << "基本块 " << bb_name << ":" << std::endl;
+        //std::cout << "基本块 " << bb_name << ":" << std::endl;
         
-        std::cout << "  def: { ";
+        //std::cout << "  def: { ";
         for (const std::string& var : analysis.def[bb_name]) {
-            std::cout << var << " ";
+            //std::cout << var << " ";
         }
-        std::cout << "}" << std::endl;
+        //std::cout << "}" << std::endl;
         
-        std::cout << "  use: { ";
+        //std::cout << "  use: { ";
         for (const std::string& var : analysis.use[bb_name]) {
-            std::cout << var << " ";
+            //std::cout << var << " ";
         }
-        std::cout << "}" << std::endl;
+        //std::cout << "}" << std::endl;
         
-        std::cout << "  live_in: { ";
+        //std::cout << "  live_in: { ";
         for (const std::string& var : analysis.live_in[bb_name]) {
-            std::cout << var << " ";
+            //std::cout << var << " ";
         }
-        std::cout << "}" << std::endl;
+        //std::cout << "}" << std::endl;
         
-        std::cout << "  live_out: { ";
+        //std::cout << "  live_out: { ";
         for (const std::string& var : analysis.live_out[bb_name]) {
-            std::cout << var << " ";
+            //std::cout << var << " ";
         }
-        std::cout << "}" << std::endl;
-        std::cout << std::endl;
+        //std::cout << "}" << std::endl;
+        //std::cout << std::endl;
     }
     
-    std::cout << "活跃区间:" << std::endl;
+    //std::cout << "活跃区间:" << std::endl;
     for (const auto& interval : analysis.live_intervals) {
-        std::cout << "  " << interval.var_name << ": [" << interval.start 
-                  << ", " << interval.end << "]" << std::endl;
+        //std::cout << "  " << interval.var_name << ": [" << interval.start
+                  //<< ", " << interval.end << "]" << std::endl;
     }
     
     return analysis;
@@ -427,7 +427,7 @@ void RegisterAllocator::spillAtInterval(LiveInterval& current,
 RegisterAllocation RegisterAllocator::performLinearScanAllocation(const LivenessAnalysis& liveness) {
     RegisterAllocation allocation;
     
-    std::cout << "\n=== 开始线性扫描寄存器分配 ===" << std::endl;
+    //std::cout << "\n=== 开始线性扫描寄存器分配 ===" << std::endl;
     
     // 复制活跃区间（因为需要修改）
     LivenessAnalysis mutable_liveness = liveness;
@@ -436,20 +436,20 @@ RegisterAllocation RegisterAllocator::performLinearScanAllocation(const Liveness
     linearScanAlgorithm(mutable_liveness, allocation);
     
     // 输出分配结果
-    std::cout << "\n=== 寄存器分配结果 ===" << std::endl;
-    std::cout << "寄存器分配:" << std::endl;
+    //std::cout << "\n=== 寄存器分配结果 ===" << std::endl;
+    //std::cout << "寄存器分配:" << std::endl;
     for (const auto& pair : allocation.var_to_reg) {
-        std::cout << "  " << pair.first << " -> " << pair.second << std::endl;
+        //std::cout << "  " << pair.first << " -> " << pair.second << std::endl;
     }
     
-    std::cout << "\n溢出变量 (" << allocation.spilled_vars.size() << " 个):" << std::endl;
+    //std::cout << "\n溢出变量 (" << allocation.spilled_vars.size() << " 个):" << std::endl;
     for (const auto& var : allocation.spilled_vars) {
         int location = allocation.var_to_spill_location[var];
-        std::cout << "  " << var << " -> 栈位置 " << location << " (偏移: " << (location * 4) << ")" << std::endl;
+        //std::cout << "  " << var << " -> 栈位置 " << location << " (偏移: " << (location * 4) << ")" << std::endl;
     }
     
-    std::cout << "\n总共需要 " << allocation.max_spill_slots << " 个栈槽位 (" 
-              << (allocation.max_spill_slots * 4) << " 字节)" << std::endl;
+    //std::cout << "\n总共需要 " << allocation.max_spill_slots << " 个栈槽位 ("
+              //<< (allocation.max_spill_slots * 4) << " 字节)" << std::endl;
     
     return allocation;
 }
