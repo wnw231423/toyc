@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "visit.h"
 #include "inline.h"
+#include "register_allocation.h"
 
 using namespace std;
 
@@ -48,7 +49,8 @@ int main(int argc, char *argv[]) {
         optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
     } else {
-        cout << visit_program(comp_unit->to_IR()) << endl;
+        auto ir = comp_unit->to_IR();
+        cout << visit_program(std::move(ir)) << endl;
     }
     return 0;
 }

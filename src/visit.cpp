@@ -1,5 +1,6 @@
 ﻿#include "visit.h"
 #include "rv_defs.h"
+#include "register_allocation.h"
 
 #include <cassert>
 #include <iostream>
@@ -51,6 +52,22 @@ std::string visit_program(std::unique_ptr<Program> program) {
 }
 
 std::string visit_function(const std::unique_ptr<Function> &func) {
+    local_var_indices.clear();
+
+    RegisterAllocator allocator;
+    auto liveness = allocator.performLivenessAnalysis(func.get());
+    auto allocation = allocator.performLinearScanAllocation(liveness);
+    for (const auto pair : allocation.var_to_reg) {
+        // std::cout << "Variable " << pair.first << " is assigned to register " << pair.second << "\n";
+        Position pos = Position(pair.second);
+        local_var_indices[pair.first] = pos; // update local_var_indices with register positions
+    }
+    for (const auto pair : allocation.var_to_spill_location) {
+        Position pos = Position(pair.second);
+        local_var_indices[pair.first] = pos; // update local_var_indices with stack positions
+    }
+    int max_spill_slots = allocation.max_spill_slots;
+
     std::ostringstream oss;
 
     // entry of the function
@@ -78,13 +95,14 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     // 4. ra if this function calls other functions
     ra_space = (if_call_other_functions == 1) ? 4 : 0;
     int extra_param_count_for_calling = std::max(0, max_calling_param_count - 8);
-    int temp = 4 * (local_var_count + extra_param_count_for_calling) + ra_space;
+    //int temp = 4 * (local_var_count + extra_param_count_for_calling) + ra_space;
+    int temp = 4 * (max_spill_slots + extra_param_count_for_calling) + ra_space;
     // align to 16
     stack_size = (temp + 15) & ~15;
 
     // set the static values for visiting this function
     cur_local_var_index = extra_param_count_for_calling * 4;
-    local_var_indices.clear();
+    //local_var_indices.clear();
 
     // prologue
     if (stack_size < 2048 && stack_size >= -2048) {
@@ -152,7 +170,7 @@ std::string visit_value(const std::unique_ptr<IRValue> &value) {
     switch (value->v_tag) {
         case IRValueTag::ALLOC: {
             auto *v = dynamic_cast<AllocValue*>(value.get());
-            visit_alloc_value(v);
+            //visit_alloc_value(v);
             //oss << visit_alloc_value(v) << "\n";
             break;
         }
