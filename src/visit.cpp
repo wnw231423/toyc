@@ -46,10 +46,9 @@ std::string visit_program(std::unique_ptr<Program> program)
 
     // begin to visit
     std::ostringstream oss;
+    oss << "  .globl main\n";
     for (const auto &func : program->funcs)
     {
-        oss << "  .text\n";
-        oss << "  .globl " << func->get_func_name() << "\n";
         oss << visit_function(std::move(func)) << "\n";
     }
 
@@ -429,17 +428,8 @@ std::string visit_return_value(const ReturnValue *value)
     {
         // oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
         Position a0("a0");
-        // 如果返回值是立即数常量
-        if (auto int_val = dynamic_cast<IntergerValue *>(value->value.get()))
-        {
-            oss << "  li a0, " << int_val->value << "\n";
-        }
-        else
-        {
-            // 否则按照变量处理
-            Position return_value_index = get_local_var_index(value->value->name);
-            oss << move(return_value_index, a0) << "\n";
-        }
+        Position return_value_index = get_local_var_index(value->value->name);
+        oss << move(return_value_index, a0) << "\n"; // move return value to a0
     }
     // do epilogue
     if (stack_size < 2048 && stack_size >= -2048)
