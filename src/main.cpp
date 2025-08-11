@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
     int ir_mode = 0;
     int inline_mode = 0;
     int inline_asm_mode = 0;
+    int conservative_inline_mode = 0;
     char* input;
 
     assert(argc == 2 || argc == 3);
@@ -39,6 +40,8 @@ int main(int argc, char *argv[]) {
             inline_mode = 1;
         } else if (string(argv[1]) == "-inline-asm") {
             inline_asm_mode = 1;
+        } else if (string(argv[1]) == "-conservative-inline") {
+            conservative_inline_mode = 1;
         }
         input = argv[2];
     } else {
@@ -60,8 +63,8 @@ int main(int argc, char *argv[]) {
     } else if (inline_mode) {
         auto program = comp_unit->to_IR();
         
-        // 执行函数内联优化
-        InlineOptimizer optimizer(3, 50); // 深度限制3，大小限制50
+        // 执行函数内联优化 - 允许内联更大的函数
+        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
         optimizer.optimize(program.get());
         
         cout << "// 优化后的IR代码:" << endl;
@@ -69,11 +72,20 @@ int main(int argc, char *argv[]) {
     } else if (inline_asm_mode) {
         auto program = comp_unit->to_IR();
         
-        // 执行函数内联优化
-        InlineOptimizer optimizer(3, 50); // 深度限制3，大小限制50
+        // 执行函数内联优化 - 允许内联更大的函数
+        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
         optimizer.optimize(program.get());
         
         cout << "// 内联优化后的汇编代码:" << endl;
+        cout << visit_program(std::move(program)) << endl;
+    } else if (conservative_inline_mode) {
+        auto program = comp_unit->to_IR();
+        
+        // 执行保守的函数内联优化
+        InlineOptimizer optimizer(1, 6); // 深度限制1，大小限制6
+        optimizer.optimize(program.get());
+        
+        cout << "// 保守内联优化后的汇编代码:" << endl;
         cout << visit_program(std::move(program)) << endl;
     } else {
         cout << visit_program(comp_unit->to_IR()) << endl;
