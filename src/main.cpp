@@ -27,6 +27,7 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
 int main(int argc, char *argv[])
 {
     int opt = 0;
+    int ir = 0;
 
     yyin = stdin;
     assert(yyin);
@@ -44,6 +45,10 @@ int main(int argc, char *argv[])
             opt = 1;
             // opt = 0;
         }
+        if (strcmp(argv[i], "-ir") == 0)
+        {
+            ir = 1;
+        }
     }
 
     if (opt)
@@ -54,6 +59,13 @@ int main(int argc, char *argv[])
         ConstantPropagationOptimizer optimizer;
         optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
+    }
+    if (ir)
+    {
+        auto program = comp_unit->to_IR();
+        ConstantPropagationOptimizer optimizer;
+        optimizer.optimize(program.get());
+        cout << program->toString() << endl;
     }
     else
     {
