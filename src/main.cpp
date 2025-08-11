@@ -49,10 +49,10 @@ int main(int argc, char *argv[])
     if (opt)
     {
         auto program = comp_unit->to_IR();
-        // InlineOptimizer optimizer(3, 50);
-        // optimizer.optimize(program.get());
-        ConstantPropagationOptimizer optimizer;
+        InlineOptimizer optimizer(3, 50);
         optimizer.optimize(program.get());
+        // ConstantPropagationOptimizer optimizer;
+        // optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
     }
     else
