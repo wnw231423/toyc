@@ -13,7 +13,7 @@ BFLAGS := -d
 
 # Directories
 TOP_DIR := $(shell pwd)
-TARGET_EXEC := compiler
+TARGET_EXEC := main
 SRC_DIR := $(TOP_DIR)/src
 BUILD_DIR ?= $(TOP_DIR)/build
 
@@ -32,7 +32,7 @@ DEPS := $(OBJS:.o=.d)
 CPPFLAGS = $(INC_FLAGS) -MMD -MP
 
 # Default target
-$(BUILD_DIR)/$(TARGET_EXEC): $(FB_SRCS) $(OBJS)
+$(TOP_DIR)/$(TARGET_EXEC): $(FB_SRCS) $(OBJS)
 	$(CXX) $(OBJS) -o $@
 
 # C++ source
@@ -56,11 +56,9 @@ $(BUILD_DIR)/%.tab$(FB_EXT): $(SRC_DIR)/%.y
 
 .PHONY: all clean
 
-all: $(BUILD_DIR)/$(TARGET_EXEC)
+all: $(TOP_DIR)/$(TARGET_EXEC)
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 -include $(DEPS)
-
-
