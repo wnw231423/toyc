@@ -373,14 +373,16 @@ std::string visit_return_value(const ReturnValue* value) {
     std::ostringstream oss;
 
     // do epilogue
-    // 1. add stack pointer
+    // 1. move return value to a0
     // 2. restore s0-s11
-    // 3. move return value to a0
-    if (stack_size < 2048 && stack_size >= -2048) {
-        oss << "  addi sp, sp, " << stack_size << "\n";
-    } else {
-        oss << "  li t6, " << stack_size << "\n" // load immediate value
-            << "  add sp, sp, t6\n"; // adjust stack pointer
+    // 3. add stack pointer
+
+
+    if (value->value != nullptr) {
+        //oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
+        Position a0("a0");
+        Position return_value_index = get_local_var_index(value->value->name);
+        oss << move(return_value_index, a0) << "\n"; // move return value to a0
     }
 
     for (int i = 0; i < 12; ++i) {
@@ -389,11 +391,11 @@ std::string visit_return_value(const ReturnValue* value) {
         oss << move(s_i_mem, s_i) << "\n"; // restore s0-s11
     }
 
-    if (value->value != nullptr) {
-        //oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
-        Position a0("a0");
-        Position return_value_index = get_local_var_index(value->value->name);
-        oss << move(return_value_index, a0) << "\n"; // move return value to a0
+    if (stack_size < 2048 && stack_size >= -2048) {
+        oss << "  addi sp, sp, " << stack_size << "\n";
+    } else {
+        oss << "  li t6, " << stack_size << "\n" // load immediate value
+            << "  add sp, sp, t6\n"; // adjust stack pointer
     }
 
     oss << "  ret\n"; // return from function
