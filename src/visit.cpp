@@ -138,7 +138,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     }
 
     // set indices for arguments
-    //std::cout << "visiting function, setting indices for parameters.\n";
+    // std::cout << "visiting function, setting indices for parameters.\n";
     for (const auto& param: func->params) {
         auto *param_ref = dynamic_cast<FuncArgRefValue*>(param.get());
         if (param_ref) {
