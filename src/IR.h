@@ -149,7 +149,7 @@ public:
   int value;
 
   IntergerValue(int val)
-      : IRValue(IRValueTag::INTEGER, std::make_unique<Int32Type>()),
+      : IRValue(IRValueTag::INTEGER, std::make_unique<Int32Type>(), "$imm_" + std::to_string(val)),
         value(val) {}
 
   std::string toString() const override { return std::to_string(value); }
