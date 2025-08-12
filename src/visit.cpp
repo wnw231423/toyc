@@ -102,7 +102,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     ra_space = (if_call_other_functions == 1) ? 4 : 0;
     int extra_param_count_for_calling = std::max(0, max_calling_param_count - 8);
     //int temp = 4 * (local_var_count + extra_param_count_for_calling) + ra_space;
-    int temp = 4 * (max_spill_slots + extra_param_count_for_calling) + ra_space;
+    int temp = 4 * (max_spill_slots + extra_param_count_for_calling) + ra_space + 12 * 4; // 12 is the save register s0-s11, which is 12 * 4 bytes
     // align to 16
     stack_size = (temp + 15) & ~15;
 
@@ -111,6 +111,9 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     //local_var_indices.clear();
 
     // prologue
+    // 1. add stack pointer
+    // 2. save ra if this function calls other functions
+    // 3. save s0-s11
     if (stack_size < 2048 && stack_size >= -2048) {
         oss << "  addi sp, sp, -" << stack_size << "\n";
     } else {
@@ -127,6 +130,13 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
         Position ra_mem(stack_size - 4);
         Position ra("ra");
         oss << move(ra, ra_mem); // save return address
+    }
+
+    // save s0-s11
+    for (int i = 0; i < 12; ++i) {
+        Position s_i("s" + std::to_string(i));
+        Position s_i_mem(stack_size - 4 * (i + 2)); // s0-s11 are saved in the stack
+        oss << move(s_i, s_i_mem) << "\n"; // save s0-s11
     }
 
     // set indices for arguments
@@ -369,11 +379,19 @@ std::string visit_return_value(const ReturnValue* value) {
         oss << move(return_value_index, a0) << "\n"; // move return value to a0
     }
     // do epilogue
+    // 1. add stack pointer
+    // 2. restore s0-s11
     if (stack_size < 2048 && stack_size >= -2048) {
         oss << "  addi sp, sp, " << stack_size << "\n";
     } else {
         oss << "  li t6, " << stack_size << "\n" // load immediate value
             << "  add sp, sp, t6\n"; // adjust stack pointer
+    }
+
+    for (int i = 0; i < 12; ++i) {
+        Position s_i("s" + std::to_string(i));
+        Position s_i_mem(stack_size - 4 * (i + 2)); // s0-s11 are saved in the stack
+        oss << move(s_i_mem, s_i) << "\n"; // restore s0-s11
     }
 
     oss << "  ret\n"; // return from function
