@@ -18,6 +18,7 @@ static int ra_space;
 
 // stack sturcture
 // high: ra (if call other functions)
+//       s0-s11 (saved registers)
 //       local variables
 // low:  parameters (if calling other functions needs more than 8 parameters, the rest will be passed in stack)
 static int stack_size;
@@ -68,10 +69,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
         Position pos = Position(pair.second);
         local_var_indices[pair.first] = pos; // update local_var_indices with register positions
     }
-    for (const auto pair : allocation.var_to_spill_location) {
-        Position pos = Position(pair.second);
-        local_var_indices[pair.first] = pos; // update local_var_indices with stack positions
-    }
+
     int max_spill_slots = allocation.max_spill_slots;
 
     std::ostringstream oss;
@@ -154,6 +152,12 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
         } else {
             throw std::runtime_error("Expecting FuncArgRefValue in function parameters");
         }
+    }
+
+    // set indices for local variables spilled to stack
+    for (const auto pair : allocation.var_to_spill_location) {
+        Position pos = Position(pair.second + 4 * extra_param_count_for_calling);
+        local_var_indices[pair.first] = pos; // update local_var_indices with stack positions
     }
 
     // visit basic blocks
