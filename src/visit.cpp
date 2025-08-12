@@ -3,6 +3,7 @@
 #include "register_allocation.h"
 
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
@@ -26,6 +27,10 @@ static std::unordered_map<std::string, Position> local_var_indices;
 
 Position get_local_var_index(std::string var_name) {
     //std::cout << "looking for local variable " << var_name << "\n";
+    if (strncmp(var_name.c_str(), "$imm_", 5) == 0) {
+        int imm_value = std::stoi(var_name.substr(5));
+        return Position(2, imm_value); // use t0 to hold immediate values
+    }
     if (local_var_indices.find(var_name) == local_var_indices.end()) {
         Position pos = Position(cur_local_var_index);
         local_var_indices[var_name] = pos;
