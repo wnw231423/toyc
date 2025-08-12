@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #include "register_allocation.h"
 #include <iostream>
