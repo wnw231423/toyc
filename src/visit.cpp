@@ -2,6 +2,7 @@
 #include "rv_defs.h"
 
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
@@ -25,6 +26,10 @@ static std::unordered_map<std::string, Position> local_var_indices;
 
 Position get_local_var_index(std::string var_name) {
     //std::cout << "looking for local variable " << var_name << "\n";
+    if (strncmp(var_name.c_str(), "$imm_", 5) == 0) {
+        int imm_value = std::stoi(var_name.substr(5));
+        return Position(2, imm_value); // use t0 to hold immediate values
+    }
     if (local_var_indices.find(var_name) == local_var_indices.end()) {
         Position pos = Position(cur_local_var_index);
         local_var_indices[var_name] = pos;
@@ -52,6 +57,8 @@ std::string visit_program(std::unique_ptr<Program> program) {
 }
 
 std::string visit_function(const std::unique_ptr<Function> &func) {
+    local_var_indices.clear();
+
     std::ostringstream oss;
 
     // entry of the function
@@ -80,12 +87,13 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     ra_space = (if_call_other_functions == 1) ? 4 : 0;
     int extra_param_count_for_calling = std::max(0, max_calling_param_count - 8);
     int temp = 4 * (local_var_count + extra_param_count_for_calling) + ra_space;
+    //int temp = 4 * (max_spill_slots + extra_param_count_for_calling) + ra_space;
     // align to 16
     stack_size = (temp + 15) & ~15;
 
     // set the static values for visiting this function
     cur_local_var_index = extra_param_count_for_calling * 4;
-    local_var_indices.clear();
+    //local_var_indices.clear();
 
     // prologue
     if (stack_size < 2048 && stack_size >= -2048) {
@@ -153,7 +161,7 @@ std::string visit_value(const std::unique_ptr<IRValue> &value) {
     switch (value->v_tag) {
         case IRValueTag::ALLOC: {
             auto *v = dynamic_cast<AllocValue*>(value.get());
-            visit_alloc_value(v);
+            //visit_alloc_value(v);
             //oss << visit_alloc_value(v) << "\n";
             break;
         }
