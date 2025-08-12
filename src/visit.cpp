@@ -245,25 +245,39 @@ void visit_alloc_value(const AllocValue *value)
 std::string visit_load_value(const LoadValue *value)
 {
     std::ostringstream oss;
-    if (value->type == 0)
-    {
-        Position src_index = get_local_var_index(value->src->name);
-        Position result_index = get_local_var_index(value->name);
 
-        oss << move(src_index, result_index) << "\n";
-    }
-    else if (value->type == 1)
+    // 无论 type 为 0（普通 load）还是 1（立即数 load），都先判断源是不是常量
+    if (auto int_val = dynamic_cast<IntergerValue *>(value->src.get()))
     {
-        // load immediate value
+        // 源是立即数：直接 li + move
         Position result_index = get_local_var_index(value->name);
-        auto int_value = dynamic_cast<IntergerValue *>(value->src.get());
-        oss << "  li t0, " << int_value->value << "\n";
-        Position t0 = Position("t0");
+        oss << "  li t0, " << int_val->value << "\n";
+        Position t0("t0");
         oss << move(t0, result_index) << "\n";
     }
     else
     {
-        throw std::runtime_error("Unknown load type");
+        // 源是普通变量
+        if (value->type == 0)
+        {
+            Position src_index = get_local_var_index(value->src->name);
+            Position result_index = get_local_var_index(value->name);
+            oss << move(src_index, result_index) << "\n";
+        }
+        else if (value->type == 1)
+        {
+            // type==1 按立即数处理（老逻辑）
+            // （这分支正常不会进，因为上面 dynamic_cast 已经处理立即数了）
+            Position result_index = get_local_var_index(value->name);
+            auto int_value = dynamic_cast<IntergerValue *>(value->src.get());
+            oss << "  li t0, " << int_value->value << "\n";
+            Position t0("t0");
+            oss << move(t0, result_index) << "\n";
+        }
+        else
+        {
+            throw std::runtime_error("Unknown load type");
+        }
     }
 
     return oss.str();
@@ -273,94 +287,81 @@ std::string visit_binary_value(const BinaryValue *value)
 {
     std::ostringstream oss;
 
-    Position lhs_index = get_local_var_index(value->lhs->name);
-    Position rhs_index = get_local_var_index(value->rhs->name);
-    Position result_index = get_local_var_index(value->name);
-
-    Position t0 = Position("t0");
-    Position t1 = Position("t1");
-    oss << move(lhs_index, t0) << "\n"; // load lhs into t0
-    oss << move(rhs_index, t1) << "\n"; // load rhs into t1
-    if (value->op == BinaryOp::ADD)
+    Position lhs_index, rhs_index;
+    if (auto int_val = dynamic_cast<IntergerValue *>(value->lhs.get()))
     {
-        oss << "  add t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::SUB)
-    {
-        oss << "  sub t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::MUL)
-    {
-        oss << "  mul t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::DIV)
-    {
-        oss << "  div t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::MOD)
-    {
-        oss << "  rem t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::EQ)
-    {
-        oss << "  sub t2, t0, t1\n";
-        oss << "  seqz t2, t2\n";
-    }
-    else if (value->op == BinaryOp::NE)
-    {
-        oss << "  sub t2, t0, t1\n";
-        oss << "  snez t2, t2\n";
-    }
-    else if (value->op == BinaryOp::LT)
-    {
-        oss << "  slt t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::LE)
-    {
-        oss << "  sgt t2, t0, t1\n";
-        oss << "  seqz t2, t2\n";
-    }
-    else if (value->op == BinaryOp::GT)
-    {
-        oss << "  sgt t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::GE)
-    {
-        oss << "  slt t2, t0, t1\n";
-        oss << "  seqz t2, t2\n";
-    }
-    else if (value->op == BinaryOp::AND)
-    {
-        oss << "  and t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::OR)
-    {
-        oss << "  or t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::XOR)
-    {
-        oss << "  xor t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::SHL)
-    {
-        oss << "  sll t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::SHR)
-    {
-        oss << "  srl t2, t0, t1\n";
-    }
-    else if (value->op == BinaryOp::SAR)
-    {
-        oss << "  sra t2, t0, t1\n";
+        oss << "  li t0, " << int_val->value << "\n";
+        lhs_index = Position("t0");
     }
     else
     {
-        throw std::runtime_error("Unknown binary operation");
+        lhs_index = get_local_var_index(value->lhs->name);
     }
 
-    // oss << "  sw t2, " << result_index;
-    Position t2 = Position("t2");
-    oss << move(t2, result_index) << "\n"; // store result in result_index
+    if (auto int_val = dynamic_cast<IntergerValue *>(value->rhs.get()))
+    {
+        oss << "  li t1, " << int_val->value << "\n";
+        rhs_index = Position("t1");
+    }
+    else
+    {
+        rhs_index = get_local_var_index(value->rhs->name);
+    }
+
+    Position result_index = get_local_var_index(value->name);
+    Position t2("t2");
+
+    // 执行二元运算
+    if (value->op == BinaryOp::ADD)
+        oss << "  add t2, t0, t1";
+    else if (value->op == BinaryOp::SUB)
+        oss << "  sub t2, t0, t1";
+    else if (value->op == BinaryOp::MUL)
+        oss << "  mul t2, t0, t1";
+    else if (value->op == BinaryOp::DIV)
+        oss << "  div t2, t0, t1";
+    else if (value->op == BinaryOp::MOD)
+        oss << "  rem t2, t0, t1";
+    else if (value->op == BinaryOp::EQ)
+    {
+        oss << "  sub t2, t0, t1";
+        oss << "  seqz t2, t2";
+    }
+    else if (value->op == BinaryOp::NE)
+    {
+        oss << "  sub t2, t0, t1";
+        oss << "  snez t2, t2";
+    }
+    else if (value->op == BinaryOp::LT)
+        oss << "  slt t2, t0, t1";
+    else if (value->op == BinaryOp::LE)
+    {
+        oss << "  sgt t2, t0, t1";
+        oss << "  seqz t2, t2";
+    }
+    else if (value->op == BinaryOp::GT)
+        oss << "  sgt t2, t0, t1";
+    else if (value->op == BinaryOp::GE)
+    {
+        oss << "  slt t2, t0, t1";
+        oss << "  seqz t2, t2";
+    }
+    else if (value->op == BinaryOp::AND)
+        oss << "  and t2, t0, t1";
+    else if (value->op == BinaryOp::OR)
+        oss << "  or t2, t0, t1";
+    else if (value->op == BinaryOp::XOR)
+        oss << "  xor t2, t0, t1";
+    else if (value->op == BinaryOp::SHL)
+        oss << "  sll t2, t0, t1";
+    else if (value->op == BinaryOp::SHR)
+        oss << "  srl t2, t0, t1";
+    else if (value->op == BinaryOp::SAR)
+        oss << "  sra t2, t0, t1";
+    else
+        throw std::runtime_error("Unknown binary operation");
+
+    oss << move(t2, result_index) << "\n";
     return oss.str();
 }
 
@@ -368,10 +369,20 @@ std::string visit_store_value(const StoreValue *value)
 {
     std::ostringstream oss;
 
-    Position src_index = get_local_var_index(value->value->name);
-    Position dest_index = get_local_var_index(value->dest->name);
+    Position src_pos;
+    if (auto int_val = dynamic_cast<IntergerValue *>(value->value.get()))
+    {
+        // 直接数
+        oss << "  li t0, " << int_val->value << "\n";
+        src_pos = Position("t0");
+    }
+    else
+    {
+        src_pos = get_local_var_index(value->value->name);
+    }
 
-    oss << move(src_index, dest_index) << "\n"; // store value in destination
+    Position dest_index = get_local_var_index(value->dest->name);
+    oss << move(src_pos, dest_index) << "\n";
 
     return oss.str();
 }
@@ -384,40 +395,46 @@ std::string visit_call_value(const CallValue *value)
     int arg_count = value->args.size();
     for (int i = 0; i < arg_count; ++i)
     {
-        Position arg_index = get_local_var_index(value->args[i]->name);
-        if (i < 8)
+        Position src_pos;
+        if (auto int_val = dynamic_cast<IntergerValue *>(value->args[i].get()))
         {
-            // oss << "  lw a" << i << ", " << arg_index << "\n"; // a0-a7
-            Position a_i("a" + std::to_string(i));
-            oss << move(arg_index, a_i) << "\n"; // move argument to a0-a7
+            // 常量立即数：先装到 t0
+            oss << "  li t0, " << int_val->value << "\n";
+            src_pos = Position("t0");
         }
         else
         {
-            // oss << "  lw t0, " << arg_index << "\n";
-            // oss << "  sw t0, " <<  4 * (i - 8) << "(sp)\n"; // store to stack
+            // 普通变量
+            src_pos = get_local_var_index(value->args[i]->name);
+        }
 
+        if (i < 8)
+        {
+            Position a_i("a" + std::to_string(i));
+            oss << move(src_pos, a_i) << "\n"; // move to a0-a7
+        }
+        else
+        {
             Position mem_index(4 * (i - 8));
-            oss << move(arg_index, mem_index) << "\n"; // store to stack
+            oss << move(src_pos, mem_index) << "\n"; // spill to stack
         }
     }
 
     // call the function
     oss << "  call " << value->get_callee() << "\n";
 
-    // restore ra, done by caller
+    // restore ra (if needed)
     Position ra("ra");
     Position ra_mem(stack_size - 4);
-    oss << move(ra_mem, ra) << "\n"; // restore return address
+    oss << move(ra_mem, ra) << "\n";
 
     // save return value
     if (!value->name.empty())
     {
         Position result_index = get_local_var_index(value->name);
         Position a0("a0");
-        // oss << "  sw a0, " << result_index << "\n"; // return value in a0
-        oss << move(a0, result_index) << "\n"; // move return value to result_index
+        oss << move(a0, result_index) << "\n";
     }
-
     return oss.str();
 }
 
@@ -460,12 +477,20 @@ std::string visit_branch_value(const BranchValue *value)
 {
     std::ostringstream oss;
 
-    // oss << "  lw t0, " << get_local_var_index(value->cond->name) << "\n"; // load condition
-    Position cond_index = get_local_var_index(value->cond->name);
-    Position t0("t0");
-    oss << move(cond_index, t0) << "\n";                          // move condition to t0
-    oss << "  beqz t0, " << value->false_block.substr(1) << "\n"; // if condition is zero, branch to false block
-    oss << "  j " << value->true_block.substr(1) << "\n";         // otherwise, jump to true block
+    Position cond_pos;
+    if (auto int_val = dynamic_cast<IntergerValue *>(value->cond.get()))
+    {
+        oss << "  li t0, " << int_val->value << "\n";
+        cond_pos = Position("t0");
+    }
+    else
+    {
+        cond_pos = get_local_var_index(value->cond->name);
+        oss << move(cond_pos, Position("t0")) << "\n";
+    }
+
+    oss << "  beqz t0, " << value->false_block.substr(1) << "\n";
+    oss << "  j " << value->true_block.substr(1) << "\n";
 
     return oss.str();
 }
