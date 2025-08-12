@@ -371,15 +371,11 @@ std::string visit_call_value(const CallValue* value) {
 
 std::string visit_return_value(const ReturnValue* value) {
     std::ostringstream oss;
-    if (value->value != nullptr) {
-        //oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
-        Position a0("a0");
-        Position return_value_index = get_local_var_index(value->value->name);
-        oss << move(return_value_index, a0) << "\n"; // move return value to a0
-    }
+
     // do epilogue
     // 1. add stack pointer
     // 2. restore s0-s11
+    // 3. move return value to a0
     if (stack_size < 2048 && stack_size >= -2048) {
         oss << "  addi sp, sp, " << stack_size << "\n";
     } else {
@@ -391,6 +387,13 @@ std::string visit_return_value(const ReturnValue* value) {
         Position s_i("s" + std::to_string(i));
         Position s_i_mem(stack_size - 4 * (i + 2)); // s0-s11 are saved in the stack
         oss << move(s_i_mem, s_i) << "\n"; // restore s0-s11
+    }
+
+    if (value->value != nullptr) {
+        //oss << "  lw a0, " << get_local_var_index(value->value->name) << "\n"; // return value in a0
+        Position a0("a0");
+        Position return_value_index = get_local_var_index(value->value->name);
+        oss << move(return_value_index, a0) << "\n"; // move return value to a0
     }
 
     oss << "  ret\n"; // return from function
