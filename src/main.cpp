@@ -8,7 +8,7 @@
 #include "ast.h"
 #include "visit.h"
 #include "inline.h"
-#include "register_allocation.h"
+#include "consprop.h"
 
 using namespace std;
 
@@ -38,14 +38,13 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < argc; ++i) {
         if (strcmp(argv[i], "-opt") == 0) {
-            //opt = 1;
-            opt = 0;
+            opt = 1;
         }
     }
 
     if (opt) {
         auto program = comp_unit->to_IR();
-        InlineOptimizer optimizer(3, 50);
+        ConstantPropagationOptimizer optimizer;
         optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
     } else {
