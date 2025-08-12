@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (opt) {
+    //if (opt) {
+    if ( true ) {
         auto program = comp_unit->to_IR();
         //InlineOptimizer optimizer(3, 50);
         ConstantPropagationOptimizer optimizer;
