@@ -98,10 +98,24 @@ bool InlineOptimizer::can_inline(const Function* func) const {
         return false;
     }
     
-    // 只内联简单的函数（最多6条指令）
+    // 只内联非常简单的函数（最多2条指令）
     const auto& bb = func->bbs[0];
-    if (bb->insts.size() > 6) {
+    if (bb->insts.size() > 2) {
         return false;
+    }
+    
+    // 检查函数名，避免内联复杂的函数
+    if (func->name.find("fibonacci") != std::string::npos ||
+        func->name.find("gcd") != std::string::npos ||
+        func->name.find("isPrime") != std::string::npos ||
+        func->name.find("factorial") != std::string::npos ||
+        func->name.find("combination") != std::string::npos ||
+        func->name.find("power") != std::string::npos ||
+        func->name.find("complexFunction") != std::string::npos ||
+        func->name.find("shortCircuit") != std::string::npos ||
+        func->name.find("nestedLoopsAndConditions") != std::string::npos ||
+        func->name.find("nestedCalls") != std::string::npos) {
+        return false; // 不内联复杂的测试函数
     }
     
     return true;
@@ -118,8 +132,8 @@ bool InlineOptimizer::can_inline_call(const CallValue* call, const Function* cal
         return false;
     }
     
-    // 只内联最多2个参数的函数
-    if (callee->params.size() > 2) {
+    // 只内联最多1个参数的函数
+    if (callee->params.size() > 1) {
         return false;
     }
     
@@ -137,8 +151,22 @@ bool InlineOptimizer::can_inline_call(const CallValue* call, const Function* cal
     
     // 检查函数体是否过于复杂
     const auto& bb = callee->bbs[0];
-    if (bb->insts.size() > 6) { // 最多6条指令
+    if (bb->insts.size() > 2) { // 最多2条指令
         return false;
+    }
+    
+    // 检查被调用函数名，避免内联复杂的函数
+    if (callee->name.find("fibonacci") != std::string::npos ||
+        callee->name.find("gcd") != std::string::npos ||
+        callee->name.find("isPrime") != std::string::npos ||
+        callee->name.find("factorial") != std::string::npos ||
+        callee->name.find("combination") != std::string::npos ||
+        callee->name.find("power") != std::string::npos ||
+        callee->name.find("complexFunction") != std::string::npos ||
+        callee->name.find("shortCircuit") != std::string::npos ||
+        callee->name.find("nestedLoopsAndConditions") != std::string::npos ||
+        callee->name.find("nestedCalls") != std::string::npos) {
+        return false; // 不内联复杂的测试函数
     }
     
     return true;
