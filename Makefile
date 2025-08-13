@@ -13,7 +13,7 @@ BFLAGS := -d
 
 # Directories
 TOP_DIR := $(shell pwd)
-TARGET_EXEC := compiler
+TARGET_EXEC := main
 SRC_DIR := $(TOP_DIR)/src
 BUILD_DIR ?= $(TOP_DIR)/build
 
@@ -56,7 +56,7 @@ $(BUILD_DIR)/%.tab$(FB_EXT): $(SRC_DIR)/%.y
 
 .PHONY: all clean
 
-all: $(BUILD_DIR)/$(TARGET_EXEC)
+all: $(TOP_DIR)/$(TARGET_EXEC)
 
 clean:
 	rm -rf $(BUILD_DIR)
