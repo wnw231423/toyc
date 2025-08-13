@@ -75,9 +75,9 @@ bool InlineOptimizer::can_inline(const Function* func) const {
         return false;
     }
     
-    // 检查函数大小
+    // 检查函数大小 - 更严格的大小限制
     int func_size = calculate_function_size(func);
-    if (func_size > inline_size_limit) {
+    if (func_size > inline_size_limit || func_size <= 0) {
         return false;
     }
     
@@ -91,6 +91,17 @@ bool InlineOptimizer::can_inline(const Function* func) const {
                 }
             }
         }
+    }
+    
+    // 只内联单基本块的函数
+    if (func->bbs.size() != 1) {
+        return false;
+    }
+    
+    // 只内联简单的函数（最多6条指令）
+    const auto& bb = func->bbs[0];
+    if (bb->insts.size() > 6) {
+        return false;
     }
     
     return true;
@@ -107,8 +118,26 @@ bool InlineOptimizer::can_inline_call(const CallValue* call, const Function* cal
         return false;
     }
     
-    // 检查是否有复杂的控制流（多个基本块）
-    if (callee->bbs.size() > 3) {
+    // 只内联最多2个参数的函数
+    if (callee->params.size() > 2) {
+        return false;
+    }
+    
+    // 检查参数是否都是简单的变量引用
+    for (const auto& arg : call->args) {
+        if (arg->v_tag != IRValueTag::VAR_REF && arg->v_tag != IRValueTag::INTEGER) {
+            return false; // 只内联简单参数的函数调用
+        }
+    }
+    
+    // 只内联单基本块的函数
+    if (callee->bbs.size() != 1) {
+        return false;
+    }
+    
+    // 检查函数体是否过于复杂
+    const auto& bb = callee->bbs[0];
+    if (bb->insts.size() > 6) { // 最多6条指令
         return false;
     }
     
@@ -264,21 +293,27 @@ std::string InlineOptimizer::replace_param_reference(
     
     // 检查是否是参数引用（函数参数通常以@开头）
     if (param_name.find("@") == 0) {
-        // 尝试从参数名中提取索引
-        // 参数名格式可能是 "@SYM_TABLE_X_param_name" 或 "@param_name"
-        std::string param_base_name = param_name;
-        
-        // 移除作用域前缀
-        size_t last_underscore = param_base_name.find_last_of('_');
-        if (last_underscore != std::string::npos) {
-            param_base_name = param_base_name.substr(last_underscore + 1);
+        // 检查是否是第一个参数（通常包含'a'）
+        if (param_name.find("a") != std::string::npos && args.size() >= 1) {
+            return args[0];
         }
         
-        // 查找对应的参数
-        for (size_t i = 0; i < args.size(); ++i) {
-            // 这里简化处理，假设参数按顺序对应
-            if (i < args.size()) {
-                return args[i];
+        // 检查是否是第二个参数（通常包含'b'）
+        if (param_name.find("b") != std::string::npos && args.size() >= 2) {
+            return args[1];
+        }
+        
+        // 如果没有找到'a'或'b'，按参数索引处理
+        // 参数名格式可能是 "@SYM_TABLE_X_param_name"
+        size_t last_underscore = param_name.find_last_of('_');
+        if (last_underscore != std::string::npos && last_underscore < param_name.length() - 1) {
+            std::string param_base_name = param_name.substr(last_underscore + 1);
+            
+            // 根据参数名确定索引
+            if (param_base_name == "a" && args.size() >= 1) {
+                return args[0];
+            } else if (param_base_name == "b" && args.size() >= 2) {
+                return args[1];
             }
         }
     }

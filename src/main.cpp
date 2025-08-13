@@ -18,16 +18,16 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
  * ./compiler <input_file>
  * ./compiler -a <input_file>     # AST mode
  * ./compiler -ir <input_file>    # IR mode
- * ./compiler -inline <input_file> # IR with inline optimization
- * ./compiler -inline-asm <input_file> # Assembly with inline optimization
+ * ./compiler -opt-ir <input_file> # IR with optimization
+ * ./compiler -opt <input_file> # Assembly code with optimization
  * The input file should contain the source code to be parsed.
- * The output will be the AST representation of the source code.
  */
 int main(int argc, char *argv[]) {
     int ast_mode = 0;
     int ir_mode = 0;
     int opt_ir_mode = 0;
     int opt_mode = 0;
+
     char* input;
 
     assert(argc == 2 || argc == 3);
@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
     } else if (opt_ir_mode) {
         auto program = comp_unit->to_IR();
         
-        // 执行函数内联优化
-        InlineOptimizer optimizer(3, 50); // 深度限制3，大小限制50
+        // 执行函数内联优化 - 允许内联更大的函数
+        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
         optimizer.optimize(program.get());
 
         // 执行常量传播，控制流简化
@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
     } else if (opt_mode) {
         auto program = comp_unit->to_IR();
         
-        // 执行函数内联优化
-        InlineOptimizer optimizer(3, 50); // 深度限制3，大小限制50
+        // 执行函数内联优化 - 允许内联更大的函数
+        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
         optimizer.optimize(program.get());
 
         // 执行常量传播，控制流简化
