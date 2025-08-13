@@ -2,7 +2,8 @@
 #define RV_DEFS_H
 #include <string>
 
-class Position {
+class Position
+{
 public:
     int type; // 0: Register, 1: Memory, 2: Immediate
     std::string reg_name;
@@ -12,13 +13,13 @@ public:
 
     Position() = default;
 
-    Position(const std::string& reg_name)
+    Position(const std::string &reg_name)
         : type(0), reg_name(reg_name), mem_offset(0) {}
 
     Position(int mem_offset)
         : type(1), reg_name(""), mem_offset(mem_offset), relative_reg("sp") {}
 
-    Position(int mem_offset, const std::string& relative_reg)
+    Position(int mem_offset, const std::string &relative_reg)
         : type(1), reg_name(""), mem_offset(mem_offset), relative_reg(relative_reg) {}
 
     Position(int type, int imm_value)
@@ -29,17 +30,23 @@ public:
     }
 };
 
-std::string move(Position src, Position dest) {
-    if (src.type == 0) {
+std::string move(Position src, Position dest)
+{
+    if (src.type == 0)
+    {
         // reg -> reg
-        if (dest.type == 0) {
+        if (dest.type == 0)
+        {
             return "  mv " + dest.reg_name + ", " + src.reg_name + "\n"; // Register to Register
         }
 
         // reg -> mem
-        if (dest.mem_offset < 2047 && dest.mem_offset >= -2048) {
+        if (dest.mem_offset < 2047 && dest.mem_offset >= -2048)
+        {
             return "  sw " + src.reg_name + ", " + std::to_string(dest.mem_offset) + "(sp)\n"; // Register to Memory
-        } else {
+        }
+        else
+        {
             return "  li t6, " + std::to_string(dest.mem_offset) + "\n" +
                    "  add t6, sp, t6\n" +
                    "  sw " + src.reg_name + ", 0(t6)\n"; // Register to Memory with offset
@@ -53,6 +60,7 @@ std::string move(Position src, Position dest) {
         }
 
         // imm -> mem
+
         if (dest.mem_offset < 2047 && dest.mem_offset >= -2048) {
             return "  li t6, " + std::to_string(src.imm_value) + "\n" +
                    "  sw t6, " + std::to_string(dest.mem_offset) + "(sp)\n"; // Immediate to Memory
@@ -65,8 +73,10 @@ std::string move(Position src, Position dest) {
     }
 
     // mem -> reg
-    if (dest.type == 0) {
-        if (src.mem_offset < 2047 && src.mem_offset >= -2048) {
+    if (dest.type == 0)
+    {
+        if (src.mem_offset < 2047 && src.mem_offset >= -2048)
+        {
             return "  lw " + dest.reg_name + ", " + std::to_string(src.mem_offset) + "(sp)\n"; // Memory to Register
         }
 
@@ -80,4 +90,4 @@ std::string move(Position src, Position dest) {
     return move(src, temp_reg) + move(temp_reg, dest);
 }
 
-#endif //RV_DEFS_H
+#endif // RV_DEFS_H
