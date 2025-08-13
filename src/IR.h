@@ -37,9 +37,15 @@
 
 /** Types in IR */
 
-enum class IRTypeTag { INT32, FUNCTON, UNIT };
+enum class IRTypeTag
+{
+  INT32,
+  FUNCTON,
+  UNIT
+};
 
-class IRType {
+class IRType
+{
 public:
   IRTypeTag t_tag;
 
@@ -63,17 +69,20 @@ public:
   int isFunction() const { return t_tag == IRTypeTag::FUNCTON; }
 };
 
-class Int32Type : public IRType {
+class Int32Type : public IRType
+{
 public:
   Int32Type() : IRType(IRTypeTag::INT32) {}
 
   std::string toString() const override;
-  int equals(const IRType &other) const override {
+  int equals(const IRType &other) const override
+  {
     return other.t_tag == IRTypeTag::INT32;
   }
 };
 
-class FunctionType : public IRType {
+class FunctionType : public IRType
+{
 public:
   std::vector<std::unique_ptr<IRType>> param_types;
   std::unique_ptr<IRType> return_type;
@@ -84,7 +93,8 @@ public:
         return_type(std::move(ret_t)) {}
 
   std::string toString() const override;
-  int equals(const IRType &other) const override {
+  int equals(const IRType &other) const override
+  {
     if (other.t_tag != IRTypeTag::FUNCTON)
       return 0;
 
@@ -96,7 +106,8 @@ public:
     if (param_types.size() != other_func_t.param_types.size())
       return 0;
 
-    for (size_t i = 0; i < param_types.size(); ++i) {
+    for (size_t i = 0; i < param_types.size(); ++i)
+    {
       if (!param_types[i]->equals(*other_func_t.param_types[i]))
         return 0;
     }
@@ -105,18 +116,21 @@ public:
   };
 };
 
-class UnitType : public IRType {
+class UnitType : public IRType
+{
 public:
   UnitType() : IRType(IRTypeTag::UNIT) {}
 
   std::string toString() const override;
-  int equals(const IRType &other) const override {
+  int equals(const IRType &other) const override
+  {
     return other.t_tag == IRTypeTag::UNIT;
   }
 };
 
 /** values in IR */
-enum class IRValueTag {
+enum class IRValueTag
+{
   INTEGER,
   FUNC_ARG_REF,
   VAR_REF,
@@ -130,7 +144,8 @@ enum class IRValueTag {
   RETURN
 };
 
-class IRValue {
+class IRValue
+{
 public:
   IRValueTag v_tag;
   std::unique_ptr<IRType> type;
@@ -144,12 +159,13 @@ public:
 };
 
 // e.g. 255
-class IntergerValue : public IRValue {
+class IntergerValue : public IRValue
+{
 public:
   int value;
 
   IntergerValue(int val)
-      : IRValue(IRValueTag::INTEGER, std::make_unique<Int32Type>()),
+      : IRValue(IRValueTag::INTEGER, std::make_unique<Int32Type>(), "$imm_" + std::to_string(val)),
         value(val) {}
 
   std::string toString() const override { return std::to_string(value); }
@@ -157,7 +173,8 @@ public:
 
 // Function argument reference.
 // e.g. int f(int a, int b), a and b would be func_arg_ref.
-class FuncArgRefValue : public IRValue {
+class FuncArgRefValue : public IRValue
+{
 public:
   size_t index;
 
@@ -165,12 +182,14 @@ public:
       : IRValue(IRValueTag::FUNC_ARG_REF, std::make_unique<Int32Type>(), n),
         index(i) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     return name + ": " + type->toString();
   }
 };
 
-class VarRefValue : public IRValue {
+class VarRefValue : public IRValue
+{
 public:
   VarRefValue(const std::string &var_name)
       : IRValue(IRValueTag::VAR_REF, std::make_unique<Int32Type>(), var_name) {}
@@ -179,7 +198,8 @@ public:
 };
 
 // Binary op
-enum class BinaryOp {
+enum class BinaryOp
+{
   NE = 0,
   EQ = 1,
   GT = 2,
@@ -199,7 +219,8 @@ enum class BinaryOp {
   SAR = 16
 };
 
-class BinaryValue : public IRValue {
+class BinaryValue : public IRValue
+{
 public:
   BinaryOp op;
   std::unique_ptr<IRValue> lhs;
@@ -210,14 +231,17 @@ public:
       : IRValue(IRValueTag::BINARY, std::make_unique<Int32Type>(), result_name),
         op(bop), lhs(std::move(left)), rhs(std::move(right)) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     return "  " + name + " = " + bopToString(op) + " " + lhs->toString() +
            ", " + rhs->toString();
   }
 
 private:
-  std::string bopToString(BinaryOp op) const {
-    switch (op) {
+  std::string bopToString(BinaryOp op) const
+  {
+    switch (op)
+    {
     case BinaryOp::ADD:
       return "add";
     case BinaryOp::SUB:
@@ -250,7 +274,8 @@ private:
   }
 };
 
-class AllocValue : public IRValue {
+class AllocValue : public IRValue
+{
 public:
   AllocValue(const std::string &var_name)
       : IRValue(IRValueTag::ALLOC, std::make_unique<Int32Type>(), var_name) {}
@@ -258,21 +283,24 @@ public:
   std::string toString() const override { return "  " + name + " = alloc i32"; }
 };
 
-class LoadValue : public IRValue {
+class LoadValue : public IRValue
+{
 public:
   std::unique_ptr<IRValue> src;
-  int type;  // 0 for load, 1 for li
+  int type; // 0 for load, 1 for li
 
   LoadValue(const std::string &result_name, std::unique_ptr<IRValue> source, int t = 0)
       : IRValue(IRValueTag::LOAD, std::make_unique<Int32Type>(), result_name),
         src(std::move(source)), type(t) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     return "  " + name + " = load " + src->toString();
   }
 };
 
-class StoreValue : public IRValue {
+class StoreValue : public IRValue
+{
 public:
   std::unique_ptr<IRValue> value;
   std::unique_ptr<IRValue> dest;
@@ -281,12 +309,14 @@ public:
       : IRValue(IRValueTag::STORE, std::make_unique<UnitType>()),
         value(std::move(val)), dest(std::move(de)) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     return "  store " + value->toString() + ", " + dest->toString();
   }
 };
 
-class CallValue : public IRValue {
+class CallValue : public IRValue
+{
 public:
   std::string callee; // function name
   std::vector<std::unique_ptr<IRValue>> args;
@@ -297,17 +327,21 @@ public:
       : IRValue(IRValueTag::CALL, std::move(ret_type), result_name),
         callee(func_name), args(std::move(arguments)) {}
 
-  std::string get_callee() const {
+  std::string get_callee() const
+  {
     return callee.substr(1); // remove '@' prefix
   }
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     std::string res = "  ";
-    if (!name.empty()) {
+    if (!name.empty())
+    {
       res += name + " = ";
     }
     res += "call  " + callee + " (";
-    for (size_t i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i)
+    {
       if (i > 0)
         res += " ,";
       res += args[i]->toString();
@@ -317,7 +351,8 @@ public:
   }
 };
 
-class ReturnValue : public IRValue {
+class ReturnValue : public IRValue
+{
 public:
   std::unique_ptr<IRValue> value;
 
@@ -325,17 +360,22 @@ public:
       : IRValue(IRValueTag::RETURN, std::make_unique<UnitType>()),
         value(std::move(val)) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     std::string res = "  ret";
-    if (value != nullptr) {
+    if (value != nullptr)
+    {
       return res + " " + value->toString();
-    } else {
+    }
+    else
+    {
       return res;
     }
   }
 };
 
-class BranchValue : public IRValue {
+class BranchValue : public IRValue
+{
 public:
   std::unique_ptr<IRValue> cond;
   std::string true_block;
@@ -346,13 +386,15 @@ public:
       : IRValue(IRValueTag::BRANCH, std::make_unique<UnitType>()),
         cond(std::move(condition)), true_block(true_b), false_block(false_b) {}
 
-  std::string toString() const override {
+  std::string toString() const override
+  {
     return "  br " + cond->toString() + ", " + true_block + ", " +
            false_block;
   }
 };
 
-class JumpValue : public IRValue {
+class JumpValue : public IRValue
+{
 public:
   std::string target_block;
 
@@ -364,61 +406,73 @@ public:
 };
 
 /** program components in IR */
-class BasicBlock {
+class BasicBlock
+{
 public:
   std::string name;
   std::vector<std::unique_ptr<IRValue>> insts;
 
   BasicBlock(const std::string &block_name) : name(block_name) {}
 
-  void add_inst(std::unique_ptr<IRValue> inst) {
+  void add_inst(std::unique_ptr<IRValue> inst)
+  {
     insts.push_back(std::move(inst));
   }
 
-  std::string get_name() {
+  std::string get_name()
+  {
     return name.substr(1);
   }
 
-  std::string toString() const {
+  std::string toString() const
+  {
     std::string res = name + ":\n";
-    for (const auto &inst : insts) {
+    for (const auto &inst : insts)
+    {
       res += inst->toString() + "\n";
     }
     return res;
   }
 };
 
-class Function {
+class Function
+{
 public:
   std::string name;
   std::unique_ptr<FunctionType> f_type;
   std::vector<std::unique_ptr<IRValue>> params;
   std::vector<std::unique_ptr<BasicBlock>> bbs; // basic blocks
-  int local_var_count = 0; // number of local variables
+  int local_var_count = 0;                      // number of local variables
 
   Function(const std::string &func_name,
            std::unique_ptr<FunctionType> func_type)
       : name(func_name), f_type(std::move(func_type)) {}
 
-  void add_param(std::unique_ptr<FuncArgRefValue> param) {
+  void add_param(std::unique_ptr<FuncArgRefValue> param)
+  {
     params.push_back(std::move(param));
   }
 
-  void add_basic_block(std::unique_ptr<BasicBlock> bb) {
+  void add_basic_block(std::unique_ptr<BasicBlock> bb)
+  {
     bbs.push_back(std::move(bb));
   }
 
-  int get_param_count() const {
+  int get_param_count() const
+  {
     return static_cast<int>(params.size());
   }
 
-  std::string get_func_name() const {
+  std::string get_func_name() const
+  {
     return name.substr(1); // remove '@' prefix
   }
 
-  std::string toString() const {
+  std::string toString() const
+  {
     std::string res = "fun " + name + "(";
-    for (size_t i = 0; i < params.size(); ++i) {
+    for (size_t i = 0; i < params.size(); ++i)
+    {
       if (i > 0)
         res += ", ";
       res += params[i]->toString();
@@ -427,7 +481,8 @@ public:
     res += f_type->return_type->toString();
     res += "{\n";
 
-    for (const auto &bb : bbs) {
+    for (const auto &bb : bbs)
+    {
       res += bb->toString();
     }
     res += "}";
@@ -436,17 +491,21 @@ public:
   }
 };
 
-class Program {
+class Program
+{
 public:
   std::vector<std::unique_ptr<Function>> funcs;
 
-  void add_function(std::unique_ptr<Function> func) {
+  void add_function(std::unique_ptr<Function> func)
+  {
     funcs.push_back(std::move(func));
   }
 
-  std::string toString() const {
+  std::string toString() const
+  {
     std::string result;
-    for (const auto &func : funcs) {
+    for (const auto &func : funcs)
+    {
       result += func->toString() + "\n\n";
     }
     return result;

@@ -24,10 +24,10 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
  * The input file should contain the source code to be parsed.
  * The output will be the AST representation of the source code.
  */
+
 int main(int argc, char *argv[])
 {
     int opt = 0;
-    int ir = 0;
 
     yyin = stdin;
     assert(yyin);
@@ -45,27 +45,16 @@ int main(int argc, char *argv[])
             opt = 1;
             // opt = 0;
         }
-        if (strcmp(argv[i], "-ir") == 0)
-        {
-            ir = 1;
-        }
     }
 
-    if (opt)
+    // if (opt) {
+    if (true)
     {
         auto program = comp_unit->to_IR();
         // InlineOptimizer optimizer(3, 50);
-        // optimizer.optimize(program.get());
         ConstantPropagationOptimizer optimizer;
         optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
-    }
-    if (ir)
-    {
-        auto program = comp_unit->to_IR();
-        ConstantPropagationOptimizer optimizer;
-        optimizer.optimize(program.get());
-        cout << program->toString() << endl;
     }
     else
     {
