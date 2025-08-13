@@ -344,6 +344,21 @@ void ConstantPropagationOptimizer::optimize_function(Function *func)
         if (alive[i])
             new_bbs.push_back(move(func->bbs[i]));
     func->bbs = move(new_bbs);
+
+    // === 新增：清理终结指令之后的死代码 ===
+    for (auto &bb : func->bbs)
+    {
+        auto &insts = bb->insts;
+        for (size_t i = 0; i < insts.size(); ++i)
+        {
+            if (insts[i]->v_tag == IRValueTag::RETURN ||
+                insts[i]->v_tag == IRValueTag::JUMP)
+            {
+                insts.resize(i + 1);
+                break;
+            }
+        }
+    }
 }
 
 // 保留 fold_binary 和 get_constant（它们是辅助函数）
@@ -430,3 +445,4 @@ bool ConstantPropagationOptimizer::get_constant(IRValue *val, int &out_const)
     }
     return false;
 }
+
