@@ -1,4 +1,3 @@
-
 #include "consprop.h"
 #include <memory>
 #include <queue>
@@ -446,3 +445,4 @@ bool ConstantPropagationOptimizer::get_constant(IRValue *val, int &out_const)
     }
     return false;
 }
+

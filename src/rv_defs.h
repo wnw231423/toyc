@@ -23,10 +23,8 @@ public:
         : type(1), reg_name(""), mem_offset(mem_offset), relative_reg(relative_reg) {}
 
     Position(int type, int imm_value)
-        : type(type), reg_name(""), mem_offset(0), relative_reg(""), imm_value(imm_value)
-    {
-        if (type == 2)
-        {
+        : type(type), reg_name(""), mem_offset(0), relative_reg(""), imm_value(imm_value) {
+        if (type == 2) {
             this->imm_value = imm_value; // Immediate value
         }
     }
@@ -55,22 +53,18 @@ std::string move(Position src, Position dest)
         }
     }
 
-    if (src.type == 2)
-    {
-        if (dest.type == 0)
-        {
+    if (src.type == 2) {
+        if (dest.type == 0) {
             // imm -> reg
             return "  li " + dest.reg_name + ", " + std::to_string(src.imm_value) + "\n"; // Immediate to Register
         }
 
         // imm -> mem
-        if (dest.mem_offset < 2047 && dest.mem_offset >= -2048)
-        {
+
+        if (dest.mem_offset < 2047 && dest.mem_offset >= -2048) {
             return "  li t6, " + std::to_string(src.imm_value) + "\n" +
                    "  sw t6, " + std::to_string(dest.mem_offset) + "(sp)\n"; // Immediate to Memory
-        }
-        else
-        {
+        } else {
             return "  li t5, " + std::to_string(src.imm_value) + "\n" +
                    "  li t6, " + std::to_string(dest.mem_offset) + "\n" +
                    "  add t6, sp, t6\n" +

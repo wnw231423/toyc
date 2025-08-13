@@ -1,4 +1,4 @@
-﻿#include "visit.h"
+#include "visit.h"
 #include "rv_defs.h"
 
 #include <cassert>
@@ -24,16 +24,14 @@ static int stack_size;
 static int cur_local_var_index;
 static std::unordered_map<std::string, Position> local_var_indices;
 
-Position get_local_var_index(std::string var_name)
-{
-    // std::cout << "looking for local variable " << var_name << "\n";
-    if (strncmp(var_name.c_str(), "$imm_", 5) == 0)
-    {
+
+Position get_local_var_index(std::string var_name) {
+    //std::cout << "looking for local variable " << var_name << "\n";
+    if (strncmp(var_name.c_str(), "$imm_", 5) == 0) {
         int imm_value = std::stoi(var_name.substr(5));
         return Position(2, imm_value); // use t0 to hold immediate values
     }
-    if (local_var_indices.find(var_name) == local_var_indices.end())
-    {
+    if (local_var_indices.find(var_name) == local_var_indices.end()) {
         Position pos = Position(cur_local_var_index);
         local_var_indices[var_name] = pos;
         cur_local_var_index += 4;
@@ -52,8 +50,7 @@ std::string visit_program(std::unique_ptr<Program> program)
 
     // begin to visit
     std::ostringstream oss;
-    for (const auto &func : program->funcs)
-    {
+    for (const auto &func : program->funcs) {
         oss << "  .text\n";
         oss << "  .globl " << func->get_func_name() << "\n";
         oss << visit_function(std::move(func)) << "\n";
@@ -62,8 +59,8 @@ std::string visit_program(std::unique_ptr<Program> program)
     return oss.str();
 }
 
-std::string visit_function(const std::unique_ptr<Function> &func)
-{
+
+std::string visit_function(const std::unique_ptr<Function> &func) {
     local_var_indices.clear();
 
     std::ostringstream oss;
