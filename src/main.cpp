@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
     // if ( false ) {
         auto program = comp_unit->to_IR();
         //InlineOptimizer optimizer(1, 10);
-        ConstantPropagationOptimizer optimizer;
-        optimizer.optimize(program.get());
+        //ConstantPropagationOptimizer optimizer;
+        //optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
     }
     else
