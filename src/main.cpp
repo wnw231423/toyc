@@ -25,6 +25,7 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
  * The output will be the AST representation of the source code.
  */
 
+
 int main(int argc, char *argv[]) {
     int opt = 0;
 
@@ -37,11 +38,10 @@ int main(int argc, char *argv[]) {
 
     auto comp_unit = dynamic_cast<CompUnitAST *>(ast.get());
 
-
     for (int i = 0; i < argc; ++i) {
         if (strcmp(argv[i], "-opt") == 0) {
             opt = 1;
-            //opt = 0;
+            // opt = 0;
         }
     }
 
