@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #include "register_allocation.h"
 #include <iostream>
@@ -51,24 +51,6 @@ void RegisterAllocator::buildControlFlowGraph(Function* func) {
             cfg_predecessors[next_bb_name].push_back(bb_name);
         }
     }
-
-#ifdef DEBUG
-    std::cout << "=== 控制流图 ===" << std::endl;
-    for (const auto& bb : func->bbs) {
-        const std::string& bb_name = bb->name;
-        std::cout << "基本块 " << bb_name << ":" << std::endl;
-        std::cout << "  后继: ";
-        for (const auto& succ : cfg_successors[bb_name]) {
-            std::cout << succ << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "  前驱: ";
-        for (const auto& pred : cfg_predecessors[bb_name]) {
-            std::cout << pred << " ";
-        }
-        std::cout << std::endl;
-    }
-#endif
 }
 
 // 为指令编号
@@ -82,18 +64,6 @@ void RegisterAllocator::numberInstructions(Function* func) {
             instruction_numbers[inst->toString()] = total_instructions++;
         }
     }
-
-#ifdef DEBUG
-    std::cout << "=== 指令编号 ===" << std::endl;
-    int inst_num = 0;
-    for (const auto& bb : func->bbs) {
-        std::cout << "基本块 " << bb->name << ":" << std::endl;
-        for (const auto& inst : bb->insts) {
-            std::cout << "  " << inst_num << ": " << inst->toString() << std::endl;
-            inst_num++;
-        }
-    }
-#endif
 }
 
 // 检查变量是否在函数内定义（不包括参数）
@@ -235,25 +205,6 @@ void RegisterAllocator::computeDefUse(Function* func, LivenessAnalysis& analysis
         }
     }
 
-#ifdef DEBUG
-    std::cout << "=== DEF/USE 集合 ===" << std::endl;
-    for (const auto& bb : func->bbs) {
-        const std::string& bb_name = bb->name;
-        std::cout << "基本块 " << bb_name << ":" << std::endl;
-
-        std::cout << "  def: { ";
-        for (const std::string& var : analysis.def[bb_name]) {
-            std::cout << var << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "  use: { ";
-        for (const std::string& var : analysis.use[bb_name]) {
-            std::cout << var << " ";
-        }
-        std::cout << "}" << std::endl;
-    }
-#endif
 }
 
 // 计算活跃变量的in和out集合（数据流分析）
@@ -303,25 +254,6 @@ void RegisterAllocator::computeLiveInOut(Function* func, LivenessAnalysis& analy
         }
     }
 
-#ifdef DEBUG
-    std::cout << "=== LIVE_IN/LIVE_OUT 集合 ===" << std::endl;
-    for (const auto& bb : func->bbs) {
-        const std::string& bb_name = bb->name;
-        std::cout << "基本块 " << bb_name << ":" << std::endl;
-
-        std::cout << "  live_in: { ";
-        for (const std::string& var : analysis.live_in[bb_name]) {
-            std::cout << var << " ";
-        }
-        std::cout << "}" << std::endl;
-
-        std::cout << "  live_out: { ";
-        for (const std::string& var : analysis.live_out[bb_name]) {
-            std::cout << var << " ";
-        }
-        std::cout << "}" << std::endl;
-    }
-#endif
 }
 
 // 计算每条指令的活跃变量
@@ -368,22 +300,7 @@ void RegisterAllocator::computeInstructionLiveness(Function* func, LivenessAnaly
         instruction_num += bb->insts.size();
     }
 
-#ifdef DEBUG
-    std::cout << "=== 每条指令的活跃变量 ===" << std::endl;
-    instruction_num = 0;
-    for (const auto& bb : func->bbs) {
-        std::cout << "基本块 " << bb->name << ":" << std::endl;
-        for (size_t i = 0; i < bb->insts.size(); i++) {
-            std::cout << "  指令 " << instruction_num << ": " << bb->insts[i]->toString() << std::endl;
-            std::cout << "    活跃变量: { ";
-            for (const auto& var : analysis.live_at_instruction[instruction_num]) {
-                std::cout << var << " ";
-            }
-            std::cout << "}" << std::endl;
-            instruction_num++;
-        }
-    }
-#endif
+
 }
 
 // 计算活跃区间
@@ -442,22 +359,11 @@ void RegisterAllocator::computeLiveIntervals(Function* func, LivenessAnalysis& a
     // 按开始位置排序
     std::sort(analysis.live_intervals.begin(), analysis.live_intervals.end());
 
-#ifdef DEBUG
-    std::cout << "=== 活跃区间 ===" << std::endl;
-    for (const auto& interval : analysis.live_intervals) {
-        std::cout << "变量 " << interval.var_name
-                  << ": [" << interval.start << ", " << interval.end << "]" << std::endl;
-    }
-#endif
 }
 
 // 执行活跃变量分析
 LivenessAnalysis RegisterAllocator::performLivenessAnalysis(Function* func) {
     LivenessAnalysis analysis;
-
-#ifdef DEBUG
-    std::cout << "\n=== 开始活跃变量分析，函数: " << func->name << " ===" << std::endl;
-#endif
 
     // 1. 构建控制流图
     buildControlFlowGraph(func);
@@ -566,9 +472,6 @@ void RegisterAllocator::linearScanAlgorithm(LivenessAnalysis& liveness, Register
 RegisterAllocation RegisterAllocator::performLinearScanAllocation(const LivenessAnalysis& liveness) {
     RegisterAllocation allocation;
 
-#ifdef DEBUG
-    std::cout << "\n=== 开始线性扫描寄存器分配 ===" << std::endl;
-#endif
 
     // 复制活跃区间（因为需要修改）
     LivenessAnalysis mutable_liveness = liveness;
@@ -576,23 +479,6 @@ RegisterAllocation RegisterAllocator::performLinearScanAllocation(const Liveness
     // 执行线性扫描算法
     linearScanAlgorithm(mutable_liveness, allocation);
 
-#ifdef DEBUG
-    // 输出分配结果
-    std::cout << "\n=== 寄存器分配结果 ===" << std::endl;
-    std::cout << "寄存器分配:" << std::endl;
-    for (const auto& pair : allocation.var_to_reg) {
-        std::cout << "  " << pair.first << " -> " << pair.second << std::endl;
-    }
-
-    std::cout << "\n溢出变量 (" << allocation.spilled_vars.size() << " 个):" << std::endl;
-    for (const auto& var : allocation.spilled_vars) {
-        int location = allocation.var_to_spill_location[var];
-        std::cout << "  " << var << " -> 栈位置 " << location << " (偏移: " << (location * 4) << ")" << std::endl;
-    }
-
-    std::cout << "\n总共需要 " << allocation.max_spill_slots << " 个栈槽位 ("
-              << (allocation.max_spill_slots * 4) << " 字节)" << std::endl;
-#endif
 
     return allocation;
 }

@@ -49,9 +49,8 @@ std::string visit_program(std::unique_ptr<Program> program) {
 
     // begin to visit
     std::ostringstream oss;
+    oss << "  .globl main\n";
     for (const auto &func : program->funcs) {
-        oss << "  .text\n";
-        oss << "  .globl " << func->get_func_name() << "\n";
         oss << visit_function(std::move(func)) << "\n";
     }
 
@@ -156,7 +155,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
 
     // set indices for local variables spilled to stack
     for (const auto pair : allocation.var_to_spill_location) {
-        Position pos = Position(pair.second + 4 * extra_param_count_for_calling);
+        Position pos = Position(4 * pair.second + 4 * extra_param_count_for_calling);
         local_var_indices[pair.first] = pos; // update local_var_indices with stack positions
     }
 
