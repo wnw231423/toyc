@@ -132,7 +132,7 @@ std::string visit_function(const std::unique_ptr<Function> &func) {
     // save s0-s11
     for (int i = 0; i < 12; ++i) {
         Position s_i("s" + std::to_string(i));
-        Position s_i_mem(stack_size - 4 * (i + 2)); // s0-s11 are saved in the stack
+        Position s_i_mem(stack_size - 4 * (i + 1 + if_call_other_functions ? 1 : 0)); // s0-s11 are saved in the stack
         oss << move(s_i, s_i_mem) << "\n"; // save s0-s11
     }
 
