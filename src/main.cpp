@@ -35,12 +35,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //if (opt) {
-    if ( false ) {
+    if (opt) {
+    // if ( false ) {
         auto program = comp_unit->to_IR();
-        InlineOptimizer optimizer(1, 10);
+        //InlineOptimizer optimizer(1, 10);
         //ConstantPropagationOptimizer optimizer;
-        optimizer.optimize(program.get());
+        //optimizer.optimize(program.get());
         cout << visit_program(std::move(program)) << endl;
     }
     else
