@@ -62,8 +62,8 @@ int main(int argc, char *argv[]) {
         auto program = comp_unit->to_IR();
         
         // 执行函数内联优化 - 允许内联更大的函数
-        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
-        optimizer.optimize(program.get());
+        //InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
+        //optimizer.optimize(program.get());
 
         // 执行常量传播，控制流简化
         ConstantPropagationOptimizer optimizer2;
@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
         auto program = comp_unit->to_IR();
         
         // 执行函数内联优化 - 允许内联更大的函数
-        InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
-        optimizer.optimize(program.get());
+        //InlineOptimizer optimizer(1, 10); // 深度限制1，大小限制10
+        //optimizer.optimize(program.get());
 
         // 执行常量传播，控制流简化
         ConstantPropagationOptimizer optimizer2;
