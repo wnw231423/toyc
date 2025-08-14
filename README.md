@@ -1,7 +1,10 @@
 ﻿# Compiler for ToyC
 
-## Configure dev environment
+## info
+- Branch `interface` is used for testing on school server.
+- Branch `main` is used for better development.
 
+## Configure dev environment
 - run `docker build -t ubuntu-cpp-env .` to build an image.
 - use `docker run -it --rm -v D:\\your-project:/home/compiler ubuntu-cpp-env bash` to mount your project dir to the container and run.
 
@@ -28,17 +31,20 @@ Basic features to meat the requirements of the ToyC language.
 
 ### IR generation
 
-- [ ] IR implementation
-- [ ] evaluate AST to IR, using symbol table.
-- [ ] correctness test
+- [x] IR implementation
+- [x] evaluate AST to IR, using symbol table.
+- [x] correctness test
 ...
 
 ### optimization
-
-- [ ] Register allocation.
+- [x] consprop
+- [ ] inline (未完成)
 ...
 
 ### RISCV generation
+- [x] reg allocation
+- [x] RISCV generation
+- [x] correctness test
 
 ## Debugging Chronicles
 
