@@ -40,6 +40,8 @@ int main(int argc, char *argv[]) {
             opt_ir_mode = 1;
         } else if (string(argv[1]) == "opt") {
             opt_mode = 1;
+        } else {
+            std::cout << "Unknown option: " << argv[1] << std::endl;
         }
         input = argv[2];
     } else {

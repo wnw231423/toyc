@@ -32,7 +32,7 @@ DEPS := $(OBJS:.o=.d)
 CPPFLAGS = $(INC_FLAGS) -MMD -MP
 
 # Default target
-$(TOP_DIR)/$(TARGET_EXEC): $(FB_SRCS) $(OBJS)
+$(BUILD_DIR)/$(TARGET_EXEC): $(FB_SRCS) $(OBJS)
 	$(CXX) $(OBJS) -o $@
 
 # C++ source
